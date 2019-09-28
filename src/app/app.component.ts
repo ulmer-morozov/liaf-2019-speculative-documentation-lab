@@ -1,50 +1,17 @@
 import * as THREE from 'three';
+
+import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
+
 import Stats from 'three/examples/jsm/libs/stats.module';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 
-
-export function TextureAnimator(texture: THREE.Texture, tilesHoriz: number, tilesVert: number,
-  numTiles: number, tileDispDuration: number) {
-  // note: texture passed by reference, will be updated by the update function.
-
-  this.tilesHorizontal = tilesHoriz;
-  this.tilesVertical = tilesVert;
-  // how many images does this spritesheet contain?
-  //  usually equals tilesHoriz * tilesVert, but not necessarily,
-  //  if there at blank tiles at the bottom of the spritesheet. 
-  this.numberOfTiles = numTiles;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1 / this.tilesHorizontal, 1 / this.tilesVertical);
-
-  // how long should each image be displayed?
-  this.tileDisplayDuration = tileDispDuration;
-
-  // how long has the current image been displayed?
-  this.currentDisplayTime = 0;
-
-  // which image is currently being displayed?
-  this.currentTile = 0;
-
-  this.update = function (milliSec) {
-    this.currentDisplayTime += milliSec;
-    while (this.currentDisplayTime > this.tileDisplayDuration) {
-      this.currentDisplayTime -= this.tileDisplayDuration;
-      this.currentTile++;
-      if (this.currentTile == this.numberOfTiles)
-        this.currentTile = 0;
-      var currentColumn = this.currentTile % this.tilesHorizontal;
-      texture.offset.x = currentColumn / this.tilesHorizontal;
-      var currentRow = Math.floor(this.currentTile / this.tilesHorizontal);
-      texture.offset.y = currentRow / this.tilesVertical;
-    }
-  };
-}
-
-
 import { Component, ViewChild, ElementRef, OnInit, HostListener, OnDestroy } from '@angular/core';
 import { MouseInfo } from './MouseInfo';
+import { GifPlane } from './GifPlane';
 
 declare const require: (path: string) => any;
 
@@ -54,8 +21,12 @@ declare const require: (path: string) => any;
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit, OnDestroy {
+  @ViewChild('canvas', { static: true }) canvasRef: ElementRef<HTMLCanvasElement>;
+
+  private gifs: GifPlane[];
 
   constructor() {
+    this.gifs = [];
     this.screenCenterAbs = new THREE.Vector2();
     this.mouse = new MouseInfo();
     this.pointerRay = new THREE.Ray();
@@ -63,12 +34,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.debugCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
     this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
 
-    this.debugCamera.position.z = 5;
+    this.debugCamera.position.z = 10;
 
     this.userCamera.near = this.debugCamera.near;
     this.userCamera.position.copy(this.debugCamera.position);
   }
-  @ViewChild('canvas', { static: true }) canvasRef: ElementRef<HTMLCanvasElement>;
 
   private stats: Stats;
   private requestAnimationId: number;
@@ -94,12 +64,52 @@ export class AppComponent implements OnInit, OnDestroy {
 
   clock = new THREE.Clock();
 
-  private library: { [id: string]: THREE.Texture } = {};
-
   public ngOnInit(): void {
+
+    const meshLoader = new FBXLoader();
+
     this.initThreeJs();
     this.fillScene();
     this.startGameLoop();
+
+    // dracoLoader.setDecoderPath('./assets/libs/draco/');
+
+
+
+    meshLoader.load('./assets/scene.fbx', result => {
+
+      result.traverse(obj => {
+        if (obj.type !== 'Mesh')
+          return;
+
+        const mesh = obj as THREE.Mesh;
+
+        const currentMaterial: THREE.MeshLambertMaterial | THREE.MeshStandardMaterial = mesh.material as any;
+
+        if (
+          currentMaterial.type !== 'MeshStandardMaterial'
+          &&
+          currentMaterial.type !== 'MeshLambertMaterial'
+        )
+          return;
+
+        // debugger;
+
+        const newMaterial = new THREE.MeshBasicMaterial();
+
+        newMaterial.map = currentMaterial.map;
+        newMaterial.aoMap = currentMaterial.aoMap;
+        newMaterial.envMap = currentMaterial.envMap;
+        newMaterial.alphaMap = currentMaterial.alphaMap;
+
+        mesh.material = newMaterial;
+      });
+
+      this.scene.add(result);
+    });
+
+
+
   }
 
   private initThreeJs(): void {
@@ -126,12 +136,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private fillScene(): void {
-    const cubeGeometry = new THREE.BoxGeometry(1, 1, 2);
-    const material = new THREE.MeshNormalMaterial();
-
-    const mesh = new THREE.Mesh(cubeGeometry, material);
-    // this.scene.add(mesh);
-
     const loader = new THREE.FontLoader();
     const font = loader.parse(require('three/examples/fonts/helvetiker_regular.typeface.json'));
 
@@ -140,11 +144,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.textMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
-      // transparent: true,
       side: THREE.DoubleSide
     });
 
-    const message = 'Lofoten\ntousrism.';
+    const message = 'LOFOTEN';
     const shapes = font.generateShapes(message, 3, 0);
     this.textGeometry = new THREE.ShapeBufferGeometry(shapes);
     this.textGeometry.computeBoundingBox();
@@ -161,20 +164,28 @@ export class AppComponent implements OnInit, OnDestroy {
     this.scene.add(text);
     // this.scene.add(new THREE.Box3Helper(this.textGeometry.boundingBox));
 
+    const gifPlane = new GifPlane
+      ({
+        url: './assets/WalkingManSpriteSheet.png',
+        width: 5,
+        height: 5,
+        tilesHorizontal: 8,
+        tilesVertical: 1,
+        numberOfTiles: 16,
+        tileDisplayDuration: 150
+      });
 
-    const planeTexture = new THREE.TextureLoader().load('./assets/WalkingManSpriteSheet.png');
-    this.annie = new TextureAnimator(planeTexture, 8, 1, 16, 150); // texture, #horiz, #vert, #total, duration.
+    this.gifs.push
+      (
+        gifPlane
+      );
 
+    gifPlane.mesh.position.set(-12, 1, -4);
+    gifPlane.mesh.rotateX(Math.PI / 5);
+    gifPlane.mesh.rotateY(Math.PI / 10);
 
-    const planeGeometry = new THREE.PlaneGeometry(5, 5, 5);
-    const planeMaterial = new THREE.MeshBasicMaterial({ map: planeTexture, transparent: true });
-    const cube = new THREE.Mesh(planeGeometry, planeMaterial);
-
-    this.scene.add(cube);
-
+    this.scene.add(gifPlane.mesh);
   }
-
-  annie: any;
 
   private stopGameLoop = (): void => {
     if (this.requestAnimationId === undefined)
@@ -195,22 +206,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const delta = Math.round(newTime - this.time);
 
-    this.annie.update(delta);
-
-
-
-
-
-
-
-
-
-
-
-
-
-    console.log('delta ' + delta);
-
+    this.gifs.forEach(x => x.update(delta));
 
     this.pointerRay.origin.setFromMatrixPosition(
       this.renderPass.camera.matrixWorld

@@ -5,13 +5,12 @@ export class TextureAnimator {
     private currentTile = 0;
 
     constructor(
-        private countInARow: number,
+        countInARow: number,
         private texture: THREE.Texture,
         private tilesHorizontal: number,
         private tilesVertical: number,
         private numberOfTiles: number,
         private tileDisplayDuration: number) {
-
 
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(countInARow / this.tilesHorizontal, 1 / this.tilesVertical);

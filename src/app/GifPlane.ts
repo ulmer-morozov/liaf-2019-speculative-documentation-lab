@@ -34,7 +34,11 @@ export class GifPlane {
             );
 
         const planeGeometry = new THREE.PlaneGeometry(params.countInARow * params.width, params.height);
-        const planeMaterial = new THREE.MeshBasicMaterial({ map: planeTexture });
+        const planeMaterial = new THREE.MeshBasicMaterial({
+            map: planeTexture,
+            // alphaMap: planeTexture,
+            transparent: true
+        });
 
         this.mesh = new THREE.Mesh(planeGeometry, planeMaterial);
     }

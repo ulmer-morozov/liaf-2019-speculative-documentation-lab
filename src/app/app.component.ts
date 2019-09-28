@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 
-import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 
 import Stats from 'three/examples/jsm/libs/stats.module';
@@ -9,20 +8,24 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 
-import { Component, ViewChild, ElementRef, OnInit, HostListener, OnDestroy } from '@angular/core';
+import { Component, ViewChild, ElementRef, HostListener, OnDestroy, ViewChildren, QueryList, AfterViewInit, OnInit } from '@angular/core';
 import { MouseInfo } from './MouseInfo';
 import { GifPlane } from './GifPlane';
 import { TextLink } from './TextLink';
 
 declare const require: (path: string) => any;
 
+interface IAudioTrack {
+  url: string;
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit, OnDestroy {
-  @ViewChild('music', { static: true }) audio1Ref: ElementRef<HTMLAudioElement>;
+export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChildren('audioTrack') audioTrackRefs !: QueryList<ElementRef<HTMLAudioElement>>;
   @ViewChild('canvas', { static: true }) canvasRef: ElementRef<HTMLCanvasElement>;
 
   private stats: Stats;
@@ -39,8 +42,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private readonly gifs: GifPlane[];
   private readonly links: TextLink[];
-
-  private readonly debugCamera: THREE.PerspectiveCamera;
   private readonly userCamera: THREE.PerspectiveCamera;
 
   private readonly screenCenterAbs: THREE.Vector2;
@@ -52,6 +53,19 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private time = 0;
 
+  public readonly audioTracks: IAudioTrack[] = [
+    {
+      url: './assets/tourist-tinder-coffeecod.mp3'
+    },
+    {
+      url: './assets/kelpenian.mp3'
+    }
+  ];
+
+  private readonly actionMap: { [linkName: string]: string } = {
+    MoText1: 'Model2'
+  };
+
   constructor() {
     this.gifs = [];
     this.links = [];
@@ -60,53 +74,53 @@ export class AppComponent implements OnInit, OnDestroy {
     this.mouse = new MouseInfo();
     this.pointerRay = new THREE.Ray();
 
-    this.debugCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
     this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
-
-    this.debugCamera.position.z = 10;
-
-    this.userCamera.near = this.debugCamera.near;
-    this.userCamera.position.copy(this.debugCamera.position);
+    this.userCamera.position.z = 0.0001;
   }
 
   public ngOnInit(): void {
-
     this.initThreeJs();
-    this.fillScene();
-    this.startGameLoop();
 
-    // dracoLoader.setDecoderPath('./assets/libs/draco/');
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('./assets/libs/draco/');
 
     const meshLoader = new GLTFLoader();
+    meshLoader.setDRACOLoader(dracoLoader);
 
-    meshLoader.load('./assets/scene2.glb', gltf => {
+    meshLoader.load('./assets/Lofoscene1-draco.glb', gltf => {
       gltf.scene.traverse(this.replaceMaterialWithSame.bind(this));
       this.scene.add(gltf.scene);
+
+      this.fillScene();
+      this.startGameLoop();
     });
+  }
 
-    // const meshLoader = new FBXLoader();
-    // meshLoader.load('./assets/scene.fbx', result => {
-    //   result.traverse(this.replaceMaterialWithSame);
-    //   this.scene.add(result);
-    // });
+  public ngAfterViewInit(): void {
 
-    const listener = new THREE.AudioListener();
-    this.renderPass.camera.add(listener);
+    const audioTrackRefs = this.audioTrackRefs.toArray();
 
-    const audioElement = this.audio1Ref.nativeElement;
+    for (let i = 0; i < audioTrackRefs.length; i++) {
+      const audioElement = audioTrackRefs[i].nativeElement;
 
-    audioElement.play();
+      const listener = new THREE.AudioListener();
+      this.renderPass.camera.add(listener);
 
-    const positionalAudio = new THREE.PositionalAudio(listener);
+      audioElement.play();
 
-    positionalAudio.setRefDistance(10);
-    positionalAudio.setDirectionalCone(0, 90, 0);
-    positionalAudio.setMediaElementSource(audioElement as any);
+      const positionalAudio = new THREE.PositionalAudio(listener);
 
-    const helper = new THREE.PositionalAudioHelper(positionalAudio, 10);
-    positionalAudio.add(helper);
+      positionalAudio.rotateY(i * Math.PI / 2);
+      positionalAudio.setRefDistance(10);
+      positionalAudio.setDirectionalCone(90, 120, 0);
+      positionalAudio.setMediaElementSource(audioElement as any);
 
-    this.scene.add(positionalAudio);
+      const helper = new THREE.PositionalAudioHelper(positionalAudio, 10);
+      positionalAudio.add(helper);
+
+      this.scene.add(positionalAudio);
+    }
+
   }
 
   private replaceMaterialWithSame(obj: THREE.Object3D): void {
@@ -115,8 +129,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const mesh = obj as THREE.Mesh;
 
-    if (mesh.name.toLowerCase().includes('text')) {
-      const link = new TextLink(mesh);
+    if (mesh.name.toLowerCase().endsWith('_link')) {
+      const link = new TextLink(mesh, () => {
+        this.onLinkClick(link);
+      });
+
       this.links.push(link);
     }
 
@@ -128,23 +145,45 @@ export class AppComponent implements OnInit, OnDestroy {
       && currentMaterial.type !== 'MeshLambertMaterial')
       return;
 
-    const newMaterial = new THREE.MeshBasicMaterial({ wireframe: true });
-
-    newMaterial.map = currentMaterial.map;
-    newMaterial.aoMap = currentMaterial.aoMap;
-    newMaterial.envMap = currentMaterial.envMap;
-    newMaterial.alphaMap = currentMaterial.alphaMap;
-
-    // debugger;
+    const newMaterial = new THREE.MeshBasicMaterial({
+      wireframe: false,
+      color: currentMaterial.color,
+      map: currentMaterial.map,
+      aoMap: currentMaterial.aoMap,
+      envMap: currentMaterial.envMap,
+      alphaMap: currentMaterial.alphaMap
+    });
 
     mesh.material = newMaterial;
-    // mesh.material = new THREE.MeshNormalMaterial();
+  }
+
+  private onLinkClick(link: TextLink): void {
+
+    const targetName = this.actionMap[link.mesh.name];
+
+    link.mesh.visible = false;
+
+    const obj = this.scene.getObjectByName(targetName);
+
+    obj.visible = false;
+
+    console.log(targetName);
   }
 
   private initThreeJs(): void {
+    this.controls = new OrbitControls(this.userCamera, this.canvasRef.nativeElement);
 
-    this.controls = new OrbitControls(this.debugCamera, this.canvasRef.nativeElement);
-    this.controls.enabled = true; // чтобы ts-lint не пытался удалить неиспользуемую переменную
+    this.controls.autoRotate = true;
+    this.controls.enablePan = false;
+    this.controls.enableKeys = true;
+    this.controls.enableZoom = false;
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+
+    const polarAmp = Math.PI / 24;
+
+    this.controls.minPolarAngle = Math.PI / 2 - polarAmp;
+    this.controls.maxPolarAngle = Math.PI / 2 + polarAmp;
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -156,7 +195,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.stats = new Stats();
     this.canvasRef.nativeElement.after(this.stats.dom);
 
-    this.renderPass = new RenderPass(this.scene, this.debugCamera);
+    this.renderPass = new RenderPass(this.scene, this.userCamera);
 
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(this.renderPass);
@@ -190,31 +229,50 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.textGeometry.boundingBox.translate(text.position);
 
-    this.scene.add(text);
+    // this.scene.add(text);
     // this.scene.add(new THREE.Box3Helper(this.textGeometry.boundingBox));
 
-    const gifPlane = new GifPlane
-      ({
-        countInARow: 10,
-        url: './assets/WalkingManSpriteSheet.png',
-        width: 5,
-        height: 5,
-        tilesHorizontal: 8,
-        tilesVertical: 1,
-        numberOfTiles: 16,
-        tileDisplayDuration: 150
-      });
 
-    this.gifs.push
-      (
-        gifPlane
-      );
+    const names: string[] = [
+      'Polygon',
+      'Polygon10',
+      'Polygon11',
+      'Polygon12'
+    ];
 
-    gifPlane.mesh.position.set(-12, 1, -4);
-    gifPlane.mesh.rotateX(Math.PI / 5);
-    gifPlane.mesh.rotateY(Math.PI / 10);
+    for (const polygonName of names) {
 
-    this.scene.add(gifPlane.mesh);
+      // debugger;
+
+      const gifPlane = new GifPlane
+        ({
+          countInARow: 1,
+          url: './assets/animato.png',
+          width: 50,
+          height: 50,
+          tilesHorizontal: 14,
+          tilesVertical: 1,
+          numberOfTiles: 14,
+          tileDisplayDuration: 100
+        });
+
+      this.gifs.push(gifPlane);
+
+      const etalon1 = this.scene.getObjectByName(polygonName);
+      etalon1.visible = false;
+
+      // debugger;
+
+      // gifPlane.mesh.scale.copy(etalon1.scale);
+      // gifPlane.mesh.rotation.copy(etalon1.rotation);
+      // gifPlane.mesh.rotation.copy(etalon1.rotation);
+
+      // console.log(gifPlane.mesh.position + '  : ' + gifPlane.mesh.rotation);
+
+      this.scene.add(gifPlane.mesh);
+    }
+
+
   }
 
   private stopGameLoop = (): void => {
@@ -234,6 +292,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const delta = Math.round(newTime - this.time);
 
+    this.controls.update();
+
     this.gifs.forEach(x => x.update(delta));
 
     this.pointerRay.origin.setFromMatrixPosition(
@@ -246,14 +306,16 @@ export class AppComponent implements OnInit, OnDestroy {
       .sub(this.pointerRay.origin)
       .normalize();
 
-    this.links.forEach(x => x.update(this.pointerRay));
+    this.links.forEach(x => x.update(this.mouse, this.pointerRay));
 
-    this.renderer.render(this.scene, this.debugCamera);
-
-    // this.composer.render();
+    this.composer.render();
 
     this.startGameLoop();
     this.stats.end();
+
+    const relx = this.mouse.posRel.x;
+
+    this.controls.autoRotateSpeed = Math.abs(relx) > 0.7 ? 10 * relx : 0;
 
     this.time = newTime;
   }
@@ -272,23 +334,20 @@ export class AppComponent implements OnInit, OnDestroy {
     this.composer.setSize(width, height);
     this.composer.setPixelRatio(dpr);
 
-    this.debugCamera.aspect = width / height;
-    this.debugCamera.updateProjectionMatrix();
-
     this.userCamera.aspect = width / height;
     this.userCamera.updateProjectionMatrix();
   }
 
   public onkeydown(e: KeyboardEvent) {
 
-    // переход на DEBUG Camera
-    if (e.code === 'Space') {
-      this.renderPass.camera = this.renderPass.camera === this.userCamera
-        ? this.debugCamera
-        : this.userCamera;
+    // // переход на DEBUG Camera
+    // if (e.code === 'Space') {
+    //   this.renderPass.camera = this.renderPass.camera === this.userCamera
+    //     ? this.debugCamera
+    //     : this.userCamera;
 
-      return;
-    }
+    //   return;
+    // }
   }
 
   public onMouseMove(e: MouseEvent) {

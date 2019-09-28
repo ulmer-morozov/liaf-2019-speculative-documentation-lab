@@ -3,10 +3,13 @@
   (mousedown)="onMouseDown($event)"
   (mouseup)="onMouseUp()"
   (mousemove)="onMouseMove($event)"
-  (keydown)="onkeydown($event)"
   tabindex="0"
 ></canvas>
 
-<audio #music loop preload="auto">
-  <source src="./assets/Tourist-Tinder-Coffeecod.mp3" type="audio/mpeg" />
-</audio>
+<audio
+  #audioTrack
+  *ngFor="let track of audioTracks"
+  loop
+  preload="auto"
+  [src]="track.url"
+></audio>

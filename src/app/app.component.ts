@@ -63,7 +63,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
 
   private readonly actionMap: { [linkName: string]: string } = {
-    MoText1: 'Model2'
+    artist_link: 'artist_chat',
+    fish_link: 'fish_chat',
+    global1_link1: 'globalwave'
   };
 
   constructor() {
@@ -87,7 +89,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     const meshLoader = new GLTFLoader();
     meshLoader.setDRACOLoader(dracoLoader);
 
-    meshLoader.load('./assets/Lofoscene1-draco.glb', gltf => {
+    meshLoader.load('./assets/Lofoscene_optim_4.glb', gltf => {
       gltf.scene.traverse(this.replaceMaterialWithSame.bind(this));
       this.scene.add(gltf.scene);
 
@@ -128,16 +130,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
 
     const mesh = obj as THREE.Mesh;
-
-    if (mesh.name.toLowerCase().endsWith('_link')) {
-      const link = new TextLink(mesh, () => {
-        this.onLinkClick(link);
-      });
-
-      this.links.push(link);
-    }
-
     console.log(`mesh: ${mesh.name}`);
+
 
     const currentMaterial: THREE.MeshLambertMaterial | THREE.MeshStandardMaterial = mesh.material as any;
 
@@ -145,8 +139,41 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       && currentMaterial.type !== 'MeshLambertMaterial')
       return;
 
+
+    if (mesh.name.toLowerCase().includes('_link') && mesh.name.toLowerCase().includes('man')) {
+      mesh.material = new THREE.MeshBasicMaterial({
+        color: 0x000000
+      });
+
+      return;
+    }
+
+    if (mesh.name.toLowerCase().includes('_link')) {
+      const link = new TextLink(mesh, () => {
+        this.onLinkClick(link);
+      });
+
+      this.links.push(link);
+      return;
+    }
+
+    if (mesh.name.includes('strand')) {
+      mesh.material = new THREE.MeshLambertMaterial({
+        side: currentMaterial.side,
+        transparent: currentMaterial.transparent,
+        color: currentMaterial.color,
+        map: currentMaterial.map,
+        aoMap: currentMaterial.aoMap,
+        envMap: currentMaterial.envMap,
+        alphaMap: currentMaterial.alphaMap
+      });
+
+      return;
+    }
+
     const newMaterial = new THREE.MeshBasicMaterial({
-      wireframe: false,
+      side: currentMaterial.side,
+      transparent: currentMaterial.transparent,
       color: currentMaterial.color,
       map: currentMaterial.map,
       aoMap: currentMaterial.aoMap,
@@ -164,8 +191,13 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     link.mesh.visible = false;
 
     const obj = this.scene.getObjectByName(targetName);
+    console.error(`targetName not found ${link.mesh.name}  -->  ${targetName}`);
 
-    obj.visible = false;
+    if (obj === undefined) {
+      return;
+    }
+
+    obj.visible = true;
 
     console.log(targetName);
   }
@@ -189,6 +221,13 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       antialias: true,
       canvas: this.canvasRef.nativeElement
     });
+
+    // this.renderer.gammaFactor = 2.2;
+    this.renderer.gammaOutput = true;
+    this.renderer.toneMapping = THREE.Uncharted2ToneMapping;
+    this.renderer.toneMappingExposure = 0.1;
+    this.renderer.toneMappingWhitePoint = 0.1;
+    // this.renderer
 
     this.scene = new THREE.Scene();
 
@@ -229,48 +268,37 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.textGeometry.boundingBox.translate(text.position);
 
+    // this.scene.add(new THREE.AmbientLight(0xffffff, 1));
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 1));
+
+
     // this.scene.add(text);
     // this.scene.add(new THREE.Box3Helper(this.textGeometry.boundingBox));
 
 
-    const names: string[] = [
-      'Polygon',
-      'Polygon10',
-      'Polygon11',
-      'Polygon12'
-    ];
+    // for (const polygonName of names) {
 
-    for (const polygonName of names) {
+    //   // debugger;
 
-      // debugger;
+    //   const gifPlane = new GifPlane
+    //     ({
+    //       countInARow: 1,
+    //       url: './assets/animato.png',
+    //       width: 50,
+    //       height: 50,
+    //       tilesHorizontal: 14,
+    //       tilesVertical: 1,
+    //       numberOfTiles: 14,
+    //       tileDisplayDuration: 100
+    //     });
 
-      const gifPlane = new GifPlane
-        ({
-          countInARow: 1,
-          url: './assets/animato.png',
-          width: 50,
-          height: 50,
-          tilesHorizontal: 14,
-          tilesVertical: 1,
-          numberOfTiles: 14,
-          tileDisplayDuration: 100
-        });
+    //   this.gifs.push(gifPlane);
 
-      this.gifs.push(gifPlane);
+    //   const etalon1 = this.scene.getObjectByName(polygonName);
+    //   etalon1.visible = false;
 
-      const etalon1 = this.scene.getObjectByName(polygonName);
-      etalon1.visible = false;
-
-      // debugger;
-
-      // gifPlane.mesh.scale.copy(etalon1.scale);
-      // gifPlane.mesh.rotation.copy(etalon1.rotation);
-      // gifPlane.mesh.rotation.copy(etalon1.rotation);
-
-      // console.log(gifPlane.mesh.position + '  : ' + gifPlane.mesh.rotation);
-
-      this.scene.add(gifPlane.mesh);
-    }
+    //   this.scene.add(gifPlane.mesh);
+    // }
 
 
   }
@@ -313,9 +341,15 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.startGameLoop();
     this.stats.end();
 
-    const relx = this.mouse.posRel.x;
+    this.controls.autoRotateSpeed = Math.abs(this.mouse.posRel.x) > 0.7 ? 10 * this.mouse.posRel.x : 0;
 
-    this.controls.autoRotateSpeed = Math.abs(relx) > 0.7 ? 10 * relx : 0;
+
+    // debugger;
+    // this.controls.rotateUp(this.mouse.posRel.y);
+
+    // this.controls.
+
+    // console.log(this.mouse.posRel.y);
 
     this.time = newTime;
   }

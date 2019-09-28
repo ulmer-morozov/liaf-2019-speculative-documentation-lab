@@ -12,6 +12,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { Component, ViewChild, ElementRef, OnInit, HostListener, OnDestroy } from '@angular/core';
 import { MouseInfo } from './MouseInfo';
 import { GifPlane } from './GifPlane';
+import { TextLink } from './TextLink';
 
 declare const require: (path: string) => any;
 
@@ -21,24 +22,8 @@ declare const require: (path: string) => any;
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit, OnDestroy {
+  @ViewChild('music', { static: true }) audio1Ref: ElementRef<HTMLAudioElement>;
   @ViewChild('canvas', { static: true }) canvasRef: ElementRef<HTMLCanvasElement>;
-
-  private gifs: GifPlane[];
-
-  constructor() {
-    this.gifs = [];
-    this.screenCenterAbs = new THREE.Vector2();
-    this.mouse = new MouseInfo();
-    this.pointerRay = new THREE.Ray();
-
-    this.debugCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
-    this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
-
-    this.debugCamera.position.z = 10;
-
-    this.userCamera.near = this.debugCamera.near;
-    this.userCamera.position.copy(this.debugCamera.position);
-  }
 
   private stats: Stats;
   private requestAnimationId: number;
@@ -52,6 +37,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private renderPass: RenderPass;
 
+  private readonly gifs: GifPlane[];
+  private readonly links: TextLink[];
+
   private readonly debugCamera: THREE.PerspectiveCamera;
   private readonly userCamera: THREE.PerspectiveCamera;
 
@@ -62,11 +50,26 @@ export class AppComponent implements OnInit, OnDestroy {
   private textGeometry: THREE.BufferGeometry;
   private textMaterial: THREE.MeshBasicMaterial;
 
-  clock = new THREE.Clock();
+  private time = 0;
+
+  constructor() {
+    this.gifs = [];
+    this.links = [];
+
+    this.screenCenterAbs = new THREE.Vector2();
+    this.mouse = new MouseInfo();
+    this.pointerRay = new THREE.Ray();
+
+    this.debugCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
+    this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
+
+    this.debugCamera.position.z = 10;
+
+    this.userCamera.near = this.debugCamera.near;
+    this.userCamera.position.copy(this.debugCamera.position);
+  }
 
   public ngOnInit(): void {
-
-    const meshLoader = new FBXLoader();
 
     this.initThreeJs();
     this.fillScene();
@@ -74,42 +77,68 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // dracoLoader.setDecoderPath('./assets/libs/draco/');
 
+    const meshLoader = new GLTFLoader();
 
-
-    meshLoader.load('./assets/scene.fbx', result => {
-
-      result.traverse(obj => {
-        if (obj.type !== 'Mesh')
-          return;
-
-        const mesh = obj as THREE.Mesh;
-
-        const currentMaterial: THREE.MeshLambertMaterial | THREE.MeshStandardMaterial = mesh.material as any;
-
-        if (
-          currentMaterial.type !== 'MeshStandardMaterial'
-          &&
-          currentMaterial.type !== 'MeshLambertMaterial'
-        )
-          return;
-
-        // debugger;
-
-        const newMaterial = new THREE.MeshBasicMaterial();
-
-        newMaterial.map = currentMaterial.map;
-        newMaterial.aoMap = currentMaterial.aoMap;
-        newMaterial.envMap = currentMaterial.envMap;
-        newMaterial.alphaMap = currentMaterial.alphaMap;
-
-        mesh.material = newMaterial;
-      });
-
-      this.scene.add(result);
+    meshLoader.load('./assets/scene2.glb', gltf => {
+      gltf.scene.traverse(this.replaceMaterialWithSame.bind(this));
+      this.scene.add(gltf.scene);
     });
 
+    // const meshLoader = new FBXLoader();
+    // meshLoader.load('./assets/scene.fbx', result => {
+    //   result.traverse(this.replaceMaterialWithSame);
+    //   this.scene.add(result);
+    // });
 
+    const listener = new THREE.AudioListener();
+    this.renderPass.camera.add(listener);
 
+    const audioElement = this.audio1Ref.nativeElement;
+
+    audioElement.play();
+
+    const positionalAudio = new THREE.PositionalAudio(listener);
+
+    positionalAudio.setRefDistance(10);
+    positionalAudio.setDirectionalCone(0, 90, 0);
+    positionalAudio.setMediaElementSource(audioElement as any);
+
+    const helper = new THREE.PositionalAudioHelper(positionalAudio, 10);
+    positionalAudio.add(helper);
+
+    this.scene.add(positionalAudio);
+  }
+
+  private replaceMaterialWithSame(obj: THREE.Object3D): void {
+    if (obj.type !== 'Mesh')
+      return;
+
+    const mesh = obj as THREE.Mesh;
+
+    if (mesh.name.toLowerCase().includes('text')) {
+      const link = new TextLink(mesh);
+      this.links.push(link);
+    }
+
+    console.log(`mesh: ${mesh.name}`);
+
+    const currentMaterial: THREE.MeshLambertMaterial | THREE.MeshStandardMaterial = mesh.material as any;
+
+    if (currentMaterial.type !== 'MeshStandardMaterial'
+      && currentMaterial.type !== 'MeshLambertMaterial')
+      return;
+
+    const newMaterial = new THREE.MeshBasicMaterial({ wireframe: true });
+
+    newMaterial.map = currentMaterial.map;
+    newMaterial.aoMap = currentMaterial.aoMap;
+    newMaterial.envMap = currentMaterial.envMap;
+    newMaterial.alphaMap = currentMaterial.alphaMap;
+
+    // debugger;
+
+    mesh.material = newMaterial;
+    // mesh.material = new THREE.MeshNormalMaterial();
   }
 
   private initThreeJs(): void {
@@ -157,7 +186,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.textGeometry.translate(xMid, 0, 0);
 
     text = new THREE.Mesh(this.textGeometry, this.textMaterial);
-    text.position.set(0, 0, -5);
+    text.position.set(20, 0, 2);
 
     this.textGeometry.boundingBox.translate(text.position);
 
@@ -166,6 +195,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const gifPlane = new GifPlane
       ({
+        countInARow: 10,
         url: './assets/WalkingManSpriteSheet.png',
         width: 5,
         height: 5,
@@ -199,8 +229,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.requestAnimationId = requestAnimationFrame(this.gameLoop);
   }
 
-  private time: number = 0;
-
   private gameLoop = (newTime: number): void => {
     this.stats.begin();
 
@@ -218,10 +246,7 @@ export class AppComponent implements OnInit, OnDestroy {
       .sub(this.pointerRay.origin)
       .normalize();
 
-    const intersected = this.pointerRay.intersectsBox(this.textGeometry.boundingBox);
-
-    this.textMaterial.color.setHex(intersected ? 0xff0000 : 0xffffff);
-
+    this.links.forEach(x => x.update(this.pointerRay));
 
     this.renderer.render(this.scene, this.debugCamera);
 

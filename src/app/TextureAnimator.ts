@@ -5,14 +5,16 @@ export class TextureAnimator {
     private currentTile = 0;
 
     constructor(
+        private countInARow: number,
         private texture: THREE.Texture,
         private tilesHorizontal: number,
         private tilesVertical: number,
         private numberOfTiles: number,
         private tileDisplayDuration: number) {
 
+
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(1 / this.tilesHorizontal, 1 / this.tilesVertical);
+        texture.repeat.set(countInARow / this.tilesHorizontal, 1 / this.tilesVertical);
     }
 
     public update(milliSec: number): void {
@@ -26,6 +28,7 @@ export class TextureAnimator {
 
             const currentColumn = this.currentTile % this.tilesHorizontal;
             const currentRow = Math.floor(this.currentTile / this.tilesHorizontal);
+
             this.texture.offset.x = currentColumn / this.tilesHorizontal;
             this.texture.offset.y = currentRow / this.tilesVertical;
         }

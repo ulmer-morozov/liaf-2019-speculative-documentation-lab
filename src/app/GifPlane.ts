@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { TextureAnimator } from './TextureAnimator';
 
 export interface IGifPlaneParams {
+    readonly countInARow: number;
     readonly url: string;
     readonly width: number;
     readonly height: number;
@@ -18,9 +19,13 @@ export class GifPlane {
     constructor(params: IGifPlaneParams) {
 
         const planeTexture = new THREE.TextureLoader().load(params.url);
+        // planeTexture.wrapS = THREE.RepeatWrapping;
+        // planeTexture.wrapT = THREE.RepeatWrapping;
+        // planeTexture.repeat.set(0.5, 2);
 
         this.animator = new TextureAnimator
             (
+                params.countInARow,
                 planeTexture,
                 params.tilesHorizontal,
                 params.tilesVertical,
@@ -28,9 +33,9 @@ export class GifPlane {
                 params.tileDisplayDuration
             );
 
-        const planeGeometry = new THREE.PlaneGeometry(params.width, params.height);
+        const planeGeometry = new THREE.PlaneGeometry(params.countInARow * params.width, params.height);
         const planeMaterial = new THREE.MeshBasicMaterial({ map: planeTexture });
-        
+
         this.mesh = new THREE.Mesh(planeGeometry, planeMaterial);
     }
 

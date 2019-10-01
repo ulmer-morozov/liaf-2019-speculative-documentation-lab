@@ -62,10 +62,25 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   ];
 
-  private readonly actionMap: { [linkName: string]: string } = {
-    artist_link: 'artist_chat',
-    fish_link: 'fish_chat',
-    global1_link1: 'globalwave'
+  private readonly actionMap: { [linkName: string]: readonly string[] } = {
+    The_link: ['book_rotate'],
+    is_link: ['isa'],
+    global_link: ['globalwave'],
+    that_link: ['thatconnects', 'greenstrand21', 'redstrand21'],
+    intimate_link: ['intimate'],
+    and_link: ['chart_rotate'],
+    celestial_link: ['painting'],
+    //
+    // with_link: [''], //https://youtu.be/7UT3XFHe-Rs
+    // guys
+    fish_link: ['fish_chat'],
+    blacklist_link: ['blacklist_chat'],
+    local_link: ['localist_chat'],
+    florist_link: ['florist_chat'],
+    artist_link: ['artist_chat'],
+    //
+    of_moon_link: ['themoon', 'moon'],
+    and_sun_link: ['andthesun', 'sun']
   };
 
   constructor() {
@@ -77,7 +92,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pointerRay = new THREE.Ray();
 
     this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
-    this.userCamera.position.z = 0.0001;
   }
 
   public ngOnInit(): void {
@@ -89,7 +103,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     const meshLoader = new GLTFLoader();
     meshLoader.setDRACOLoader(dracoLoader);
 
-    meshLoader.load('./assets/Lofoscene_optim_4.glb', gltf => {
+    meshLoader.load('./assets/Lofoscene_final_3.glb', gltf => {
       gltf.scene.traverse(this.replaceMaterialWithSame.bind(this));
       this.scene.add(gltf.scene);
 
@@ -185,21 +199,28 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private onLinkClick(link: TextLink): void {
-
-    const targetName = this.actionMap[link.mesh.name];
-
     link.mesh.visible = false;
 
-    const obj = this.scene.getObjectByName(targetName);
-    console.error(`targetName not found ${link.mesh.name}  -->  ${targetName}`);
-
-    if (obj === undefined) {
+    const relatedObjects = this.actionMap[link.mesh.name];
+    if (relatedObjects === undefined) {
+      console.error(`Map for object with name ${link.mesh.name} is undefined.`);
       return;
     }
 
-    obj.visible = true;
+    relatedObjects.forEach(
+      objName => {
+        const obj = this.scene.getObjectByName(objName);
 
-    console.log(targetName);
+        if (obj === undefined) {
+          console.error(`targetName not found ${link.mesh.name}  -->  ${objName}`);
+          return;
+        }
+
+        obj.visible = true;
+        console.log(objName);
+      }
+    );
+
   }
 
   private initThreeJs(): void {
@@ -212,10 +233,20 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
 
-    const polarAmp = Math.PI / 24;
+    this.userCamera.position.z = 0.001;
+    // this.userCamera.rotateY(-Math.PI / 10);
+    // this.userCamera.rotateY(-Math.PI);
 
-    this.controls.minPolarAngle = Math.PI / 2 - polarAmp;
-    this.controls.maxPolarAngle = Math.PI / 2 + polarAmp;
+    this.userCamera.updateMatrix();
+    this.userCamera.updateMatrixWorld();
+    this.userCamera.updateProjectionMatrix();
+
+    ((this.controls as any).position0 as THREE.Vector3).set(0, Math.PI, 0);
+    this.controls.update();
+
+    const polarAmp = Math.PI / 24;
+    // this.controls.minPolarAngle = Math.PI / 2 - polarAmp;
+    // this.controls.maxPolarAngle = Math.PI / 2 + polarAmp;
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -301,6 +332,35 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     // }
 
 
+    // скроем интерактивные элементы
+
+    for (const key in this.actionMap) {
+      if (!this.actionMap.hasOwnProperty(key))
+        continue;
+
+      const switchableObjectNames = this.actionMap[key];
+
+      if (switchableObjectNames === undefined) {
+        console.error(`Map for object with name ${key} is undefined.`);
+        continue;
+      }
+
+      for (const switchableObjectName of switchableObjectNames) {
+        // console.log(`${key} --> ${switchableObjectName}`);
+
+        const switchableObject = this.scene.getObjectByName(switchableObjectName);
+
+        if (switchableObject === undefined) {
+          console.error(`Object with name ${switchableObjectName} not found.`);
+          continue;
+        }
+
+        switchableObject.visible = false;
+      }
+
+    }
+
+
   }
 
   private stopGameLoop = (): void => {
@@ -320,7 +380,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const delta = Math.round(newTime - this.time);
 
-    this.controls.update();
+    // this.controls.update();
 
     this.gifs.forEach(x => x.update(delta));
 

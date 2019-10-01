@@ -9,9 +9,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 
 import { Component, ViewChild, ElementRef, HostListener, OnDestroy, ViewChildren, QueryList, AfterViewInit, OnInit } from '@angular/core';
-import { MouseInfo } from './MouseInfo';
-import { GifPlane } from './GifPlane';
-import { TextLink } from './TextLink';
+import { SpritePlane } from './sprite-plane';
+import { GltfPatcher } from './gltf-patcher';
+import { MenuGltfProcessor } from './menu-gltf-processor';
+import { BasicMaterialGltfProcessor } from './basic-material-gltf-processor';
+import { MenuGroup } from './MenuGroup';
+import { FrameParams } from './frameParams';
+import { MenuLink } from './MenuLink';
+import { SpriteAnimatorGltfProcessor } from './sprite-animator-gltf-processor';
 
 declare const require: (path: string) => any;
 
@@ -40,13 +45,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private renderPass: RenderPass;
 
-  private readonly gifs: GifPlane[];
-  private readonly links: TextLink[];
+  private readonly sprites: SpritePlane[];
+  private readonly links: MenuGroup[];
   private readonly userCamera: THREE.PerspectiveCamera;
 
   private readonly screenCenterAbs: THREE.Vector2;
-  private readonly mouse: MouseInfo;
-  private readonly pointerRay: THREE.Ray;
+  private readonly frame: FrameParams;
 
   private textGeometry: THREE.BufferGeometry;
   private textMaterial: THREE.MeshBasicMaterial;
@@ -84,14 +88,15 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   };
 
   constructor() {
-    this.gifs = [];
+    this.sprites = [];
     this.links = [];
 
     this.screenCenterAbs = new THREE.Vector2();
-    this.mouse = new MouseInfo();
-    this.pointerRay = new THREE.Ray();
+    this.frame = new FrameParams();
 
     this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
+    this.userCamera.rotation.y = Math.PI / 1.5;
+    this.userCamera.position.z = 0.001;
   }
 
   public ngOnInit(): void {
@@ -103,9 +108,22 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     const meshLoader = new GLTFLoader();
     meshLoader.setDRACOLoader(dracoLoader);
 
-    meshLoader.load('./assets/Lofoscene_final_3.glb', gltf => {
-      gltf.scene.traverse(this.replaceMaterialWithSame.bind(this));
-      this.scene.add(gltf.scene);
+    meshLoader.load('./assets/Lofoscene_final_5.glb', gltf => {
+
+      const patcher = new GltfPatcher();
+
+      const menuProcessor = new MenuGltfProcessor();
+      const spriteProcessor = new SpriteAnimatorGltfProcessor();
+      const materialProcessor = new BasicMaterialGltfProcessor();
+
+      const result = patcher.patch(gltf, [materialProcessor, spriteProcessor, menuProcessor]);
+
+      this.links.push(menuProcessor.getResult());
+      this.sprites.push(...spriteProcessor.getResult());
+
+      this.links.forEach(x => x.setOnClick(this.onLinkClick.bind(this)));
+
+      this.scene.add(result.group);
 
       this.fillScene();
       this.startGameLoop();
@@ -122,7 +140,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       const listener = new THREE.AudioListener();
       this.renderPass.camera.add(listener);
 
-      audioElement.play();
+      // audioElement.play();
 
       const positionalAudio = new THREE.PositionalAudio(listener);
 
@@ -139,66 +157,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   }
 
-  private replaceMaterialWithSame(obj: THREE.Object3D): void {
-    if (obj.type !== 'Mesh')
-      return;
-
-    const mesh = obj as THREE.Mesh;
-    console.log(`mesh: ${mesh.name}`);
-
-
-    const currentMaterial: THREE.MeshLambertMaterial | THREE.MeshStandardMaterial = mesh.material as any;
-
-    if (currentMaterial.type !== 'MeshStandardMaterial'
-      && currentMaterial.type !== 'MeshLambertMaterial')
-      return;
-
-
-    if (mesh.name.toLowerCase().includes('_link') && mesh.name.toLowerCase().includes('man')) {
-      mesh.material = new THREE.MeshBasicMaterial({
-        color: 0x000000
-      });
-
-      return;
-    }
-
-    if (mesh.name.toLowerCase().includes('_link')) {
-      const link = new TextLink(mesh, () => {
-        this.onLinkClick(link);
-      });
-
-      this.links.push(link);
-      return;
-    }
-
-    if (mesh.name.includes('strand')) {
-      mesh.material = new THREE.MeshLambertMaterial({
-        side: currentMaterial.side,
-        transparent: currentMaterial.transparent,
-        color: currentMaterial.color,
-        map: currentMaterial.map,
-        aoMap: currentMaterial.aoMap,
-        envMap: currentMaterial.envMap,
-        alphaMap: currentMaterial.alphaMap
-      });
-
-      return;
-    }
-
-    const newMaterial = new THREE.MeshBasicMaterial({
-      side: currentMaterial.side,
-      transparent: currentMaterial.transparent,
-      color: currentMaterial.color,
-      map: currentMaterial.map,
-      aoMap: currentMaterial.aoMap,
-      envMap: currentMaterial.envMap,
-      alphaMap: currentMaterial.alphaMap
-    });
-
-    mesh.material = newMaterial;
-  }
-
-  private onLinkClick(link: TextLink): void {
+  private onLinkClick(link: MenuLink): void {
     link.mesh.visible = false;
 
     const relatedObjects = this.actionMap[link.mesh.name];
@@ -224,25 +183,16 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private initThreeJs(): void {
-    this.controls = new OrbitControls(this.userCamera, this.canvasRef.nativeElement);
+    this.controls = new OrbitControls(true ? this.userCamera : new THREE.Camera(), this.canvasRef.nativeElement);
 
-    this.controls.autoRotate = true;
-    this.controls.enablePan = false;
-    this.controls.enableKeys = true;
-    this.controls.enableZoom = false;
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    // this.controls.autoRotate = true;
+    // this.controls.enablePan = false;
+    // this.controls.enableKeys = true;
+    // this.controls.enableZoom = false;
+    // this.controls.enableDamping = true;
+    // this.controls.dampingFactor = 0.05;
 
-    this.userCamera.position.z = 0.001;
-    // this.userCamera.rotateY(-Math.PI / 10);
-    // this.userCamera.rotateY(-Math.PI);
 
-    this.userCamera.updateMatrix();
-    this.userCamera.updateMatrixWorld();
-    this.userCamera.updateProjectionMatrix();
-
-    ((this.controls as any).position0 as THREE.Vector3).set(0, Math.PI, 0);
-    this.controls.update();
 
     const polarAmp = Math.PI / 24;
     // this.controls.minPolarAngle = Math.PI / 2 - polarAmp;
@@ -306,32 +256,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     // this.scene.add(text);
     // this.scene.add(new THREE.Box3Helper(this.textGeometry.boundingBox));
 
-
-    // for (const polygonName of names) {
-
-    //   // debugger;
-
-    //   const gifPlane = new GifPlane
-    //     ({
-    //       countInARow: 1,
-    //       url: './assets/animato.png',
-    //       width: 50,
-    //       height: 50,
-    //       tilesHorizontal: 14,
-    //       tilesVertical: 1,
-    //       numberOfTiles: 14,
-    //       tileDisplayDuration: 100
-    //     });
-
-    //   this.gifs.push(gifPlane);
-
-    //   const etalon1 = this.scene.getObjectByName(polygonName);
-    //   etalon1.visible = false;
-
-    //   this.scene.add(gifPlane.mesh);
-    // }
-
-
     // скроем интерактивные элементы
 
     for (const key in this.actionMap) {
@@ -378,30 +302,31 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private gameLoop = (newTime: number): void => {
     this.stats.begin();
 
-    const delta = Math.round(newTime - this.time);
+    this.frame.time = newTime;
+    this.frame.delta = Math.round(newTime - this.time);
 
     // this.controls.update();
 
-    this.gifs.forEach(x => x.update(delta));
+    this.sprites.forEach(x => x.update(this.frame.delta));
 
-    this.pointerRay.origin.setFromMatrixPosition(
+    this.frame.ray.origin.setFromMatrixPosition(
       this.renderPass.camera.matrixWorld
     );
 
-    this.pointerRay.direction
-      .set(this.mouse.posRel.x, this.mouse.posRel.y, 0.5)
+    this.frame.ray.direction
+      .set(this.frame.mouse.posRel.x, this.frame.mouse.posRel.y, 0.5)
       .unproject(this.renderPass.camera)
-      .sub(this.pointerRay.origin)
+      .sub(this.frame.ray.origin)
       .normalize();
 
-    this.links.forEach(x => x.update(this.mouse, this.pointerRay));
+    this.links.forEach(x => x.updateSelected(this.frame));
 
     this.composer.render();
 
     this.startGameLoop();
     this.stats.end();
 
-    this.controls.autoRotateSpeed = Math.abs(this.mouse.posRel.x) > 0.7 ? 10 * this.mouse.posRel.x : 0;
+    // this.controls.autoRotateSpeed = Math.abs(this.mouse.posRel.x) > 0.7 ? 10 * this.mouse.posRel.x : 0;
 
 
     // debugger;
@@ -445,19 +370,19 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public onMouseMove(e: MouseEvent) {
-    this.mouse.posAbs.x = e.clientX;
-    this.mouse.posAbs.y = e.clientY;
+    this.frame.mouse.posAbs.x = e.clientX;
+    this.frame.mouse.posAbs.y = e.clientY;
 
-    this.mouse.posRel.x = -(this.screenCenterAbs.x - e.clientX) / this.screenCenterAbs.x;
-    this.mouse.posRel.y = +(this.screenCenterAbs.y - e.clientY) / this.screenCenterAbs.y;
+    this.frame.mouse.posRel.x = -(this.screenCenterAbs.x - e.clientX) / this.screenCenterAbs.x;
+    this.frame.mouse.posRel.y = +(this.screenCenterAbs.y - e.clientY) / this.screenCenterAbs.y;
   }
 
   public onMouseDown(e: MouseEvent) {
-    this.mouse.leftBtn = e.button === 0;
+    this.frame.mouse.leftBtn = e.button === 0;
   }
 
   public onMouseUp() {
-    this.mouse.leftBtn = false;
+    this.frame.mouse.leftBtn = false;
   }
 
   @HostListener('window: resize')

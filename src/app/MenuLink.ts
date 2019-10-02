@@ -5,6 +5,8 @@ export class MenuLink {
     public static readonly defaultColor = new THREE.Color(0xffffff);
     public static readonly hoverColor = new THREE.Color(0xff0000);
 
+    public readonly collider: THREE.Mesh;
+
     private readonly material: THREE.MeshBasicMaterial;
     public boundingBox: THREE.Box3;
 
@@ -18,17 +20,24 @@ export class MenuLink {
             throw new Error(`MenuLink mesh should have THREE.MeshBasicMaterial as material. Current material is ${mesh.material}`);
 
         this.material = mesh.material as THREE.MeshBasicMaterial;
-        this.boundingBox = new THREE.Box3().setFromObject(mesh);
 
-        mesh.parent.add(new THREE.Box3Helper(this.boundingBox));
+        mesh.geometry.computeBoundingBox();
+        this.boundingBox = mesh.geometry.boundingBox;
 
-        mesh.add(new THREE.AxesHelper(3));
-        // mesh.geometry.computeBoundingBox();
-        // this.boundingBox = mesh.geometry.boundingBox.clone().translate(mesh.position);
+        const boxSize = this.boundingBox.getSize(new THREE.Vector3());
+        const cubeGeometre = new THREE.BoxBufferGeometry(boxSize.x, boxSize.y, boxSize.z);
+
+        this.collider = new THREE.Mesh(cubeGeometre, new THREE.MeshNormalMaterial({
+            wireframe: true,
+            visible: false
+        }));
+
+        mesh.add(this.collider);
     }
 
-    public updateSelected(frame: FrameParams): void {
-        const intersect = frame.ray.intersectsBox(this.boundingBox);
+    public updateSelected(intersect: boolean, time: number, leftBtn: boolean): void {
+
+        // const intersect = frame.ray.intersectsBox(this.boundingBox);
         this.material.color = intersect ? MenuLink.hoverColor : MenuLink.defaultColor;
 
         if (!intersect && this.isPressed) {
@@ -39,22 +48,22 @@ export class MenuLink {
         if (
             !intersect
             ||
-            !this.isPressed && !frame.mouse.leftBtn
+            !this.isPressed && !leftBtn
             ||
-            this.isPressed && frame.mouse.leftBtn)
+            this.isPressed && leftBtn)
             return;
 
-        if (!this.isPressed && frame.mouse.leftBtn) {
+        if (!this.isPressed && leftBtn) {
             this.isPressed = true;
-            this.clickStartTime = frame.time;
+            this.clickStartTime = time;
             return;
         }
 
         this.isPressed = false;
 
-        const pressTime = frame.time - this.clickStartTime;
+        const pressTime = time - this.clickStartTime;
 
-        if (pressTime > 400) {
+        if (pressTime > 600) {
             console.log(`pressTime ${pressTime}`);
             return;
         }

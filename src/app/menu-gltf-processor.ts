@@ -24,7 +24,8 @@ export class MenuGltfProcessor extends GltfProcessor<MenuGroup> {
   protected processInternal() {
     const links = this.meshes.map(x => {
       x.material = new THREE.MeshBasicMaterial({
-        color: 0xff00ff
+        color: 0xff00ff,
+        transparent: true
       });
 
       const link = new MenuLink(x);

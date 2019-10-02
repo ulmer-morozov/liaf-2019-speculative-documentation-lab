@@ -7,7 +7,6 @@ export class BasicMaterialGltfProcessor extends GltfProcessor<void> {
 
     private meshes: THREE.Mesh[] = [];
 
-
     constructor() {
         super(BasicMaterialGltfProcessor.NAME);
     }
@@ -44,7 +43,7 @@ export class BasicMaterialGltfProcessor extends GltfProcessor<void> {
                         map: oldMaterial.map,
                         aoMap: oldMaterial.aoMap,
                         envMap: oldMaterial.envMap,
-                        alphaMap: oldMaterial.alphaMap
+                        alphaMap: oldMaterial.alphaMap,
                     };
 
                     if (this.nameContains(mesh, ['man']))

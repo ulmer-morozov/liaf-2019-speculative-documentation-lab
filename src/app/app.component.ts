@@ -17,6 +17,9 @@ import { MenuGroup } from './MenuGroup';
 import { FrameParams } from './frameParams';
 import { MenuLink } from './MenuLink';
 import { SpriteAnimatorGltfProcessor } from './sprite-animator-gltf-processor';
+import { OffsetAnimatedMesh } from './offset-animated-mesh';
+import { OffsetAnimatorGltfProcessor } from './offset-animator-gltf-processor';
+import { AnimationTask } from './AnimationTask';
 
 declare const require: (path: string) => any;
 
@@ -45,8 +48,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private renderPass: RenderPass;
 
-  private readonly sprites: SpritePlane[];
   private readonly links: MenuGroup[];
+  private readonly sprites: SpritePlane[];
+  private readonly offsetAnimatedObjects: OffsetAnimatedMesh[];
   private readonly userCamera: THREE.PerspectiveCamera;
 
   private readonly screenCenterAbs: THREE.Vector2;
@@ -64,6 +68,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     {
       url: './assets/kelpenian.mp3'
     }
+  ];
+
+  private readonly animationTasks: AnimationTask[] = [
+
   ];
 
   private readonly actionMap: { [linkName: string]: readonly string[] } = {
@@ -88,13 +96,14 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   };
 
   constructor() {
+    this.offsetAnimatedObjects = [];
     this.sprites = [];
     this.links = [];
 
     this.screenCenterAbs = new THREE.Vector2();
     this.frame = new FrameParams();
 
-    this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.5, 1000);
+    this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.005, 10000);
     this.userCamera.rotation.y = Math.PI / 1.5;
     this.userCamera.position.z = 0.001;
   }
@@ -108,27 +117,47 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     const meshLoader = new GLTFLoader();
     meshLoader.setDRACOLoader(dracoLoader);
 
-    meshLoader.load('./assets/Lofoscene_final_5.glb', gltf => {
 
+    const processGltf = gltf => {
       const patcher = new GltfPatcher();
 
       const menuProcessor = new MenuGltfProcessor();
       const spriteProcessor = new SpriteAnimatorGltfProcessor();
       const materialProcessor = new BasicMaterialGltfProcessor();
+      const offsetAnimatedProcessor = new OffsetAnimatorGltfProcessor();
 
-      const result = patcher.patch(gltf, [materialProcessor, spriteProcessor, menuProcessor]);
+      const result = patcher.patch(gltf, [
+        materialProcessor,
+        spriteProcessor,
+        offsetAnimatedProcessor,
+        menuProcessor
+      ]);
 
       this.links.push(menuProcessor.getResult());
       this.sprites.push(...spriteProcessor.getResult());
+      this.offsetAnimatedObjects.push(...offsetAnimatedProcessor.getResult());
 
       this.links.forEach(x => x.setOnClick(this.onLinkClick.bind(this)));
 
+      // debugger;
       this.scene.add(result.group);
+    };
 
-      this.fillScene();
-      this.startGameLoop();
+
+    meshLoader.load('./assets/Lofoscene_newplugin_noaurora.glb', sceneGltf => {
+      processGltf(sceneGltf);
+
+      meshLoader.load('./assets/aurora.glb', auroraGltf => {
+        processGltf(auroraGltf);
+
+        this.fillScene();
+        this.startGameLoop();
+      });
+
     });
   }
+
+
 
   public ngAfterViewInit(): void {
 
@@ -140,7 +169,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       const listener = new THREE.AudioListener();
       this.renderPass.camera.add(listener);
 
-      // audioElement.play();
+      audioElement.play();
 
       const positionalAudio = new THREE.PositionalAudio(listener);
 
@@ -150,7 +179,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       positionalAudio.setMediaElementSource(audioElement as any);
 
       const helper = new THREE.PositionalAudioHelper(positionalAudio, 10);
-      positionalAudio.add(helper);
+      // positionalAudio.add(helper);
 
       this.scene.add(positionalAudio);
     }
@@ -158,7 +187,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private onLinkClick(link: MenuLink): void {
-    link.mesh.visible = false;
+    const animationTask = new AnimationTask(link.mesh, 0, this.time, 300);
+    this.animationTasks.push(animationTask);
 
     const relatedObjects = this.actionMap[link.mesh.name];
     if (relatedObjects === undefined) {
@@ -168,27 +198,28 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     relatedObjects.forEach(
       objName => {
-        const obj = this.scene.getObjectByName(objName);
+        const obj = this.scene.getObjectByName(objName) as THREE.Mesh;// приведение неявное
 
         if (obj === undefined) {
           console.error(`targetName not found ${link.mesh.name}  -->  ${objName}`);
           return;
         }
 
-        obj.visible = true;
         console.log(objName);
+
+        this.animationTasks.push(new AnimationTask(obj, 1, this.time, 600));
       }
     );
 
   }
 
   private initThreeJs(): void {
-    this.controls = new OrbitControls(true ? this.userCamera : new THREE.Camera(), this.canvasRef.nativeElement);
+    this.controls = new OrbitControls(this.userCamera, this.canvasRef.nativeElement);
 
     // this.controls.autoRotate = true;
     // this.controls.enablePan = false;
     // this.controls.enableKeys = true;
-    // this.controls.enableZoom = false;
+    this.controls.enableZoom = true;
     // this.controls.enableDamping = true;
     // this.controls.dampingFactor = 0.05;
 
@@ -205,9 +236,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // this.renderer.gammaFactor = 2.2;
     this.renderer.gammaOutput = true;
-    this.renderer.toneMapping = THREE.Uncharted2ToneMapping;
-    this.renderer.toneMappingExposure = 0.1;
-    this.renderer.toneMappingWhitePoint = 0.1;
+    // this.renderer.toneMapping = THREE.Uncharted2ToneMapping;
+    // this.renderer.toneMappingExposure = 0.1;
+    // this.renderer.toneMappingWhitePoint = 0.1;
     // this.renderer
 
     this.scene = new THREE.Scene();
@@ -280,6 +311,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         switchableObject.visible = false;
+        // (switchableObject as any).material.opacity = 0;
       }
 
     }
@@ -307,24 +339,36 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // this.controls.update();
 
+    this.frame.raycaster.setFromCamera(this.frame.mouse.posRel, this.userCamera);
+
+
+    // this.frame.ray.origin.setFromMatrixPosition(
+    //   this.renderPass.camera.matrixWorld
+    // );
+
+    // this.frame.ray.direction
+    //   .set(this.frame.mouse.posRel.x, this.frame.mouse.posRel.y, 0.5)
+    //   .unproject(this.renderPass.camera)
+    //   .sub(this.frame.ray.origin)
+    //   .normalize();
+
     this.sprites.forEach(x => x.update(this.frame.delta));
-
-    this.frame.ray.origin.setFromMatrixPosition(
-      this.renderPass.camera.matrixWorld
-    );
-
-    this.frame.ray.direction
-      .set(this.frame.mouse.posRel.x, this.frame.mouse.posRel.y, 0.5)
-      .unproject(this.renderPass.camera)
-      .sub(this.frame.ray.origin)
-      .normalize();
-
     this.links.forEach(x => x.updateSelected(this.frame));
+    this.offsetAnimatedObjects.forEach(x => x.update(this.frame));
 
     this.composer.render();
 
     this.startGameLoop();
     this.stats.end();
+
+    for (let i = this.animationTasks.length - 1; i >= 0; i--) {
+      const animationTask = this.animationTasks[i];
+
+      const completed = animationTask.update(this.frame.time);
+
+      if (completed)
+        this.animationTasks.splice(i, 1);
+    }
 
     // this.controls.autoRotateSpeed = Math.abs(this.mouse.posRel.x) > 0.7 ? 10 * this.mouse.posRel.x : 0;
 

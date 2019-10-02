@@ -343,9 +343,13 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.requestAnimationId = requestAnimationFrame(this.gameLoop);
   }
 
-  private border = 0.7;
+  private hborder = 0.7;
+  private vborder = 0.6;
 
-  private verticalAngleAmp = Math.PI / 12;
+  private readonly verticalAngleAmp = Math.PI / 12;
+
+  private destXAngle = 0;
+  private destYAngle = 0;
 
   private gameLoop = (newTime: number): void => {
     this.stats.begin();
@@ -353,38 +357,22 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.frame.time = newTime;
     this.frame.delta = Math.round(newTime - this.time);
 
-    if (Math.abs(this.frame.mouse.posRel.y) > this.border
-      &&
-      (
-        this.frame.mouse.posRel.y > 0 && this.userCamera.rotation.x < this.verticalAngleAmp
-        ||
-        this.frame.mouse.posRel.y < 0 && this.userCamera.rotation.x > -this.verticalAngleAmp
-      )
-    ) {
-      this.userCamera.rotateX
-        (
-          // Math.round(
 
-          + 0.190
-          * Math.sign(this.frame.mouse.posRel.y)
-          * Math.pow(Math.abs(this.frame.mouse.posRel.y) - this.border, 2)
-
-          // ) / rotationPrecession
-        );
-
+    if (Math.abs(this.frame.mouse.posRel.y) > this.vborder) {
+      this.destXAngle = this.verticalAngleAmp
+        * Math.sign(this.frame.mouse.posRel.y)
+        * (Math.abs(this.frame.mouse.posRel.y) - this.vborder);
+    } else {
+      this.destXAngle = 0;
     }
 
-    if (Math.abs(this.frame.mouse.posRel.x) > this.border) {
-      this.cameraHolder.rotateY
-        (
-          // Math.round(
+    if (Math.abs(this.frame.mouse.posRel.x) > this.hborder) {
 
-          - 0.190
-          * Math.sign(this.frame.mouse.posRel.x)
-          * Math.pow(Math.abs(this.frame.mouse.posRel.x) - this.border, 2)
+      const dy = -2.990
+        * Math.sign(this.frame.mouse.posRel.x)
+        * Math.pow(Math.abs(this.frame.mouse.posRel.x) - this.hborder, 2);
 
-          // ) / rotationPrecession
-        );
+      this.destYAngle = this.cameraHolder.rotation.y + dy;
 
     } else {
       this.frame.raycaster.setFromCamera(this.frame.mouse.posRel, this.userCamera);
@@ -393,6 +381,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.offsetAnimatedObjects.forEach(x => x.update(this.frame));
     }
+
+    this.userCamera.rotation.x = this.userCamera.rotation.x + (this.destXAngle - this.userCamera.rotation.x) / 10;
+    this.cameraHolder.rotation.y = this.cameraHolder.rotation.y + (this.destYAngle - this.cameraHolder.rotation.y) / 10;
 
     this.sprites.forEach(x => x.update(this.frame.delta));
 

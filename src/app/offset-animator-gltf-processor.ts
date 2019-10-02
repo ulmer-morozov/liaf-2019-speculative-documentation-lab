@@ -45,7 +45,7 @@ export class OffsetAnimatorGltfProcessor extends GltfProcessor<ReadonlyArray<Off
                 {
                     side: THREE.DoubleSide,
                     transparent: true,
-                    map: oldMaterial.map,
+                    map:  oldMaterial.map,
                     alphaMap: alphaMap, // oldMaterial.alphaMap,
                     // alphaTest: 0.25
                 }

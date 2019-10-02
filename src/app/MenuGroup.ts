@@ -20,6 +20,9 @@ export class MenuGroup {
     for (let i = 0; i < this.links.length; i++) {
       const link = this.links[i];
 
+      if (link.disabled)
+        continue;
+
       this.intersections.splice(0, this.intersections.length);
       frame.raycaster.intersectObject(link.collider, false, this.intersections);
 

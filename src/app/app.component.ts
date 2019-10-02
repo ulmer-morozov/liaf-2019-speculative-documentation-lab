@@ -8,7 +8,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 
-import { Component, ViewChild, ElementRef, HostListener, OnDestroy, ViewChildren, QueryList, AfterViewInit, OnInit } from '@angular/core';
+import { Component, ViewChild, ElementRef, HostListener, OnDestroy, ViewChildren, QueryList, AfterViewInit, OnInit, ChangeDetectorRef } from '@angular/core';
 import { SpritePlane } from './sprite-plane';
 import { GltfPatcher } from './gltf-patcher';
 import { MenuGltfProcessor } from './menu-gltf-processor';
@@ -26,6 +26,8 @@ declare const require: (path: string) => any;
 interface IAudioTrack {
   url: string;
 }
+
+const rotationPrecession = 1000;
 
 @Component({
   selector: 'app-root',
@@ -52,6 +54,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly sprites: SpritePlane[];
   private readonly offsetAnimatedObjects: OffsetAnimatedMesh[];
   private readonly userCamera: THREE.PerspectiveCamera;
+  private readonly cameraHolder: THREE.Object3D;
 
   private readonly screenCenterAbs: THREE.Vector2;
   private readonly frame: FrameParams;
@@ -95,7 +98,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     and_sun_link: ['andthesun', 'sun']
   };
 
-  constructor() {
+  constructor(private changeDetector: ChangeDetectorRef) {
     this.offsetAnimatedObjects = [];
     this.sprites = [];
     this.links = [];
@@ -103,9 +106,17 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.screenCenterAbs = new THREE.Vector2();
     this.frame = new FrameParams();
 
+    this.cameraHolder = new THREE.Object3D();
+
+    this.cameraHolder.rotation.y = Math.PI / 1.5;
+    this.cameraHolder.position.z = 0.001;
+
     this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.005, 10000);
-    this.userCamera.rotation.y = Math.PI / 1.5;
-    this.userCamera.position.z = 0.001;
+
+    this.cameraHolder.add(this.userCamera);
+
+    // this.userCamera.rotation.y = Math.PI / 1.5;
+
   }
 
   public ngOnInit(): void {
@@ -157,10 +168,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-
-
   public ngAfterViewInit(): void {
-
     const audioTrackRefs = this.audioTrackRefs.toArray();
 
     for (let i = 0; i < audioTrackRefs.length; i++) {
@@ -184,9 +192,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.scene.add(positionalAudio);
     }
 
+    this.changeDetector.detach();
   }
 
   private onLinkClick(link: MenuLink): void {
+    link.disabled = true;
+
     const animationTask = new AnimationTask(link.mesh, 0, this.time, 300);
     this.animationTasks.push(animationTask);
 
@@ -214,12 +225,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private initThreeJs(): void {
-    this.controls = new OrbitControls(this.userCamera, this.canvasRef.nativeElement);
+    // this.controls = new OrbitControls(this.userCamera, this.canvasRef.nativeElement);
 
     // this.controls.autoRotate = true;
     // this.controls.enablePan = false;
     // this.controls.enableKeys = true;
-    this.controls.enableZoom = true;
+    // this.controls.enableZoom = true;
     // this.controls.enableDamping = true;
     // this.controls.dampingFactor = 0.05;
 
@@ -316,6 +327,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     }
 
+    this.scene.add(this.cameraHolder);
 
   }
 
@@ -331,35 +343,58 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.requestAnimationId = requestAnimationFrame(this.gameLoop);
   }
 
+  private border = 0.7;
+
+  private verticalAngleAmp = Math.PI / 12;
+
   private gameLoop = (newTime: number): void => {
     this.stats.begin();
 
     this.frame.time = newTime;
     this.frame.delta = Math.round(newTime - this.time);
 
-    // this.controls.update();
+    if (Math.abs(this.frame.mouse.posRel.y) > this.border
+      &&
+      (
+        this.frame.mouse.posRel.y > 0 && this.userCamera.rotation.x < this.verticalAngleAmp
+        ||
+        this.frame.mouse.posRel.y < 0 && this.userCamera.rotation.x > -this.verticalAngleAmp
+      )
+    ) {
+      this.userCamera.rotateX
+        (
+          // Math.round(
 
-    this.frame.raycaster.setFromCamera(this.frame.mouse.posRel, this.userCamera);
+          + 0.190
+          * Math.sign(this.frame.mouse.posRel.y)
+          * Math.pow(Math.abs(this.frame.mouse.posRel.y) - this.border, 2)
 
+          // ) / rotationPrecession
+        );
 
-    // this.frame.ray.origin.setFromMatrixPosition(
-    //   this.renderPass.camera.matrixWorld
-    // );
+    }
 
-    // this.frame.ray.direction
-    //   .set(this.frame.mouse.posRel.x, this.frame.mouse.posRel.y, 0.5)
-    //   .unproject(this.renderPass.camera)
-    //   .sub(this.frame.ray.origin)
-    //   .normalize();
+    if (Math.abs(this.frame.mouse.posRel.x) > this.border) {
+      this.cameraHolder.rotateY
+        (
+          // Math.round(
+
+          - 0.190
+          * Math.sign(this.frame.mouse.posRel.x)
+          * Math.pow(Math.abs(this.frame.mouse.posRel.x) - this.border, 2)
+
+          // ) / rotationPrecession
+        );
+
+    } else {
+      this.frame.raycaster.setFromCamera(this.frame.mouse.posRel, this.userCamera);
+
+      this.links.forEach(x => x.updateSelected(this.frame));
+
+      this.offsetAnimatedObjects.forEach(x => x.update(this.frame));
+    }
 
     this.sprites.forEach(x => x.update(this.frame.delta));
-    this.links.forEach(x => x.updateSelected(this.frame));
-    this.offsetAnimatedObjects.forEach(x => x.update(this.frame));
-
-    this.composer.render();
-
-    this.startGameLoop();
-    this.stats.end();
 
     for (let i = this.animationTasks.length - 1; i >= 0; i--) {
       const animationTask = this.animationTasks[i];
@@ -370,7 +405,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         this.animationTasks.splice(i, 1);
     }
 
-    // this.controls.autoRotateSpeed = Math.abs(this.mouse.posRel.x) > 0.7 ? 10 * this.mouse.posRel.x : 0;
+    this.composer.render();
+
+    this.startGameLoop();
+    this.stats.end();
 
 
     // debugger;

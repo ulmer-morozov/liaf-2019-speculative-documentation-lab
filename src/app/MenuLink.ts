@@ -15,6 +15,8 @@ export class MenuLink {
 
     public onClick: (menuLink: MenuLink) => void;
 
+    public disabled = false;
+
     constructor(public readonly mesh: THREE.Mesh) {
         if (Array.isArray(mesh.material) || mesh.material.type !== 'MeshBasicMaterial')
             throw new Error(`MenuLink mesh should have THREE.MeshBasicMaterial as material. Current material is ${mesh.material}`);

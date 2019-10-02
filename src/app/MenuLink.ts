@@ -2,9 +2,6 @@ import * as THREE from 'three';
 import { FrameParams } from './frameParams';
 
 export class MenuLink {
-    public static readonly defaultColor = new THREE.Color(0xffffff);
-    public static readonly hoverColor = new THREE.Color(0xff0000);
-
     public readonly collider: THREE.Mesh;
 
     private readonly material: THREE.MeshBasicMaterial;
@@ -17,7 +14,7 @@ export class MenuLink {
 
     public disabled = false;
 
-    constructor(public readonly mesh: THREE.Mesh) {
+    constructor(public readonly mesh: THREE.Mesh, private readonly defaultColor: THREE.Color, private readonly hoverColor: THREE.Color) {
         if (Array.isArray(mesh.material) || mesh.material.type !== 'MeshBasicMaterial')
             throw new Error(`MenuLink mesh should have THREE.MeshBasicMaterial as material. Current material is ${mesh.material}`);
 
@@ -40,7 +37,7 @@ export class MenuLink {
     public updateSelected(intersect: boolean, time: number, leftBtn: boolean): void {
 
         // const intersect = frame.ray.intersectsBox(this.boundingBox);
-        this.material.color = intersect ? MenuLink.hoverColor : MenuLink.defaultColor;
+        this.material.color = intersect ? this.hoverColor : this.defaultColor;
 
         if (!intersect && this.isPressed) {
             this.isPressed = false;
@@ -75,6 +72,6 @@ export class MenuLink {
     }
 
     public reset(): void {
-        this.material.color = MenuLink.defaultColor;
+        this.material.color = this.defaultColor;
     }
 }

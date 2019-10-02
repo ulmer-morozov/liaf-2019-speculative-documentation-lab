@@ -6,6 +6,8 @@
   tabindex="0"
 ></canvas>
 
+<div *ngIf="!soundIsActivated" (click)="activateSound()" class="sound-btn">play sound</div>
+
 <audio
   #audioTrack
   *ngFor="let track of audioTracks"
@@ -13,3 +15,4 @@
   preload="auto"
   [src]="track.url"
 ></audio>
+<audio #droneAudioTrack loop  preload="auto" src="./assets/drone.mp3"></audio>

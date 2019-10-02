@@ -19,9 +19,13 @@ export class OffsetAnimatorGltfProcessor extends GltfProcessor<ReadonlyArray<Off
 
         const mesh = obj as THREE.Mesh;
 
-        const sc = 0.01;
+        // const sc = 0.0001;
 
-        mesh.scale.set(-sc, sc, -sc);
+        // mesh.scale.set(-sc, sc, -sc);
+
+        // mesh.position.y = 10;
+
+
 
         mesh.updateWorldMatrix(true, true);
 
@@ -31,11 +35,10 @@ export class OffsetAnimatorGltfProcessor extends GltfProcessor<ReadonlyArray<Off
 
 
         if (OffsetAnimatorGltfProcessor.AuroraMaterial === undefined) {
-            const repeatCount = new THREE.Vector2(1, 1);
+            const repeatCount = new THREE.Vector2(10, 1);
 
             const map = new THREE.TextureLoader().load('./assets/aurora2.jpeg');
             const alphaMap = new THREE.TextureLoader().load('./assets/aurora2_a.jpeg');
-
 
             map.repeat.copy(repeatCount);
             alphaMap.repeat.copy(repeatCount);
@@ -45,11 +48,19 @@ export class OffsetAnimatorGltfProcessor extends GltfProcessor<ReadonlyArray<Off
                 {
                     side: THREE.DoubleSide,
                     transparent: true,
-                    map:  oldMaterial.map,
-                    alphaMap: alphaMap, // oldMaterial.alphaMap,
-                    // alphaTest: 0.25
+                    map: oldMaterial.map,
+                    alphaMap: oldMaterial.alphaMap,
+                    alphaTest: 0.15
                 }
             );
+
+            // OffsetAnimatorGltfProcessor.AuroraMaterial = oldMaterial as any;
+            // OffsetAnimatorGltfProcessor.AuroraMaterial.blending = THREE.AdditiveBlending;
+            // OffsetAnimatorGltfProcessor.AuroraMaterial.transparent = true;
+            // OffsetAnimatorGltfProcessor.AuroraMaterial.map = map;
+            // OffsetAnimatorGltfProcessor.AuroraMaterial.alphaMap = alphaMap;
+
+            // debugger;
 
             // mesh.add(new THREE.Mesh(new THREE.SphereBufferGeometry(8, 8, 8), OffsetAnimatorGltfProcessor.AuroraMaterial));
 
@@ -85,19 +96,3 @@ export class OffsetAnimatorGltfProcessor extends GltfProcessor<ReadonlyArray<Off
         return this.sprites;
     }
 }
-
-
-            // const map = new THREE.TextureLoader().load('./assets/aurora2.jpeg');
-            // const alphaMap = new THREE.TextureLoader().load('./assets/aurora2_a.jpeg');
-
-            // map.wrapS = THREE.RepeatWrapping;
-            // map.wrapT = THREE.RepeatWrapping;
-            // map.repeat.copy(repeatCount);
-            // map.flipY = true;
-
-            // alphaMap.wrapS = THREE.RepeatWrapping;
-            // alphaMap.wrapT = THREE.RepeatWrapping;
-            // alphaMap.repeat.copy(repeatCount);
-            // alphaMap.flipY = true;
-
-            // debugger;

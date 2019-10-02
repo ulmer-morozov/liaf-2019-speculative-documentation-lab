@@ -14,3 +14,15 @@ canvas {
     outline: none;
   }
 }
+
+.sound-btn {
+  position: absolute;
+  left: 20pt;
+  bottom: 20pt;
+  padding: 6pt;
+  user-select: none;
+  color: silver;
+  background-color: #333;
+  z-index: 1;
+  cursor: pointer;
+}

@@ -14,10 +14,9 @@ export class MenuGltfProcessor extends GltfProcessor<MenuGroup> {
   }
 
   public analyse(obj: THREE.Object3D): void {
-    if (obj.type !== 'Mesh' || !obj.name.includes('_link') || obj.name.includes('man'))
+    if (obj.type !== 'Mesh' || !obj.name.includes('_link'))
       return;
 
-    // console.log(obj.name);
     this.meshes.push(obj as THREE.Mesh);
   }
 
@@ -28,7 +27,12 @@ export class MenuGltfProcessor extends GltfProcessor<MenuGroup> {
         transparent: true
       });
 
-      const link = new MenuLink(x);
+      const isAManLink = x.name.includes('man');
+
+      const defaultColor = isAManLink ? 0x000000 : 0xffffff;
+      const hoverColor = isAManLink ? 0x000000 : 0xff0000;
+
+      const link = new MenuLink(x, new THREE.Color(defaultColor), new THREE.Color(hoverColor));
       return link;
     });
 

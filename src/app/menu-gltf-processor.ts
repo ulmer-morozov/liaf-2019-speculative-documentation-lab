@@ -30,7 +30,7 @@ export class MenuGltfProcessor extends GltfProcessor<MenuGroup> {
       const isAManLink = x.name.includes('man');
 
       const defaultColor = isAManLink ? 0x000000 : 0xffffff;
-      const hoverColor = isAManLink ? 0x000000 : 0xff0000;
+      const hoverColor = isAManLink ? 0x000000 : 0xff9100;
 
       const link = new MenuLink(x, new THREE.Color(defaultColor), new THREE.Color(hoverColor));
       return link;

@@ -26,3 +26,12 @@ canvas {
   z-index: 1;
   cursor: pointer;
 }
+
+.loading-indicator {
+  height: 2px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: #ff9100;
+  z-index: 1;
+}

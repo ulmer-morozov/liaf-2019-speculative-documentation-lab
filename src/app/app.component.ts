@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 import Stats from 'three/examples/jsm/libs/stats.module';
@@ -19,6 +19,8 @@ import {
   OnInit,
   ChangeDetectorRef
 } from '@angular/core';
+
+declare const Pace: any;
 
 import { SpritePlane } from './sprite-plane';
 import { GltfPatcher } from './gltf-patcher';
@@ -50,6 +52,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('droneAudioTrack', { static: true }) droneAudioTrackRefs !: ElementRef<HTMLAudioElement>;
 
+  public soundIsActivated = false;
+  public loadingProgress = 0;
+
   private stats: Stats;
   private requestAnimationId: number;
 
@@ -75,7 +80,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private textMaterial: THREE.MeshBasicMaterial;
 
   private time = 0;
-  private soundIsActivated = false;
 
   public readonly audioTracks: IAudioTrack[] = [
     {
@@ -126,15 +130,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.cameraHolder = new THREE.Object3D();
 
-    this.cameraHolder.rotation.y = Math.PI / 1.5;
+    // this.cameraHolder.rotation.y = Math.PI / 1.5;
 
     this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.005, 10000);
     this.userCamera.position.z = 1.001;
 
     this.cameraHolder.add(this.userCamera);
-
-    // this.userCamera.rotation.y = Math.PI / 1.5;
-
   }
 
   public ngOnInit(): void {
@@ -167,13 +168,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.offsetAnimatedObjects.push(...offsetAnimatedProcessor.getResult());
 
       this.links.forEach(x => x.setOnClick(this.onLinkClick.bind(this)));
-
-      // debugger;
       this.scene.add(result.group);
     };
 
-
-    meshLoader.load('./assets/lofoscene.glb', sceneGltf => {
+    const onMeshLoaded = (sceneGltf: GLTF) => {
       processGltf(sceneGltf);
 
       this.fillScene();
@@ -182,13 +180,13 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       // meshLoader.load('./assets/aurora.glb', auroraModel => {
 
 
-        // const auroraMesh = auroraModel.children[0] as THREE.Mesh;
+      // const auroraMesh = auroraModel.children[0] as THREE.Mesh;
 
-        // auroraMesh.scale.set(auroraMesh.scale.x, -auroraMesh.scale.y, auroraMesh.scale.z);
+      // auroraMesh.scale.set(auroraMesh.scale.x, -auroraMesh.scale.y, auroraMesh.scale.z);
 
-        // auroraMesh.position.y = 1000;
-        // (auroraMesh.material as THREE.MeshLambertMaterial).transparent = true;
-        // this.scene.add(auroraMesh);
+      // auroraMesh.position.y = 1000;
+      // (auroraMesh.material as THREE.MeshLambertMaterial).transparent = true;
+      // this.scene.add(auroraMesh);
 
 
       //   processGltf(auroraModel);
@@ -197,7 +195,16 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       //   this.startGameLoop();
       // });
 
-    });
+
+
+    };
+
+    const onMeshLoadProgress = (event: ProgressEvent): void => {
+      this.loadingProgress = Math.round(100 * event.loaded / event.total) / 100;
+      this.changeDetector.detectChanges();
+    };
+
+    meshLoader.load('./assets/lofoscene.glb', onMeshLoaded, onMeshLoadProgress);
   }
 
   public ngAfterViewInit(): void {
@@ -245,7 +252,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private initThreeJs(): void {
-    this.controls = new OrbitControls(this.userCamera, this.canvasRef.nativeElement);
+    // this.controls = new OrbitControls(this.userCamera, this.canvasRef.nativeElement);
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -262,7 +269,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.scene = new THREE.Scene();
 
     this.stats = new Stats();
-    this.canvasRef.nativeElement.after(this.stats.dom);
+    // this.canvasRef.nativeElement.after(this.stats.dom);
 
     this.renderPass = new RenderPass(this.scene, this.userCamera);
 
@@ -349,10 +356,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.requestAnimationId = requestAnimationFrame(this.gameLoop);
   }
 
-  private hborder = 0.5;
-  private vborder = 0.1;
+  private readonly hborder = 0.3;
+  private readonly vborder = 0.1;
 
-  private readonly verticalAngleAmp = Math.PI / 1;
+  private readonly verticalAngleAmp = Math.PI / 12;
 
   private destXAngle = 0;
   private destYAngle = 0;
@@ -389,7 +396,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.offsetAnimatedObjects.forEach(x => x.update(this.frame));
 
-    if (this.controls !== undefined) {
+    if (this.controls === undefined) {
       this.userCamera.rotation.x = this.userCamera.rotation.x + (this.destXAngle - this.userCamera.rotation.x) / 10;
       this.cameraHolder.rotation.y = this.cameraHolder.rotation.y + (this.destYAngle - this.cameraHolder.rotation.y) / 10;
     }
@@ -467,7 +474,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       positionalAudio.setMediaElementSource(audioElement as any);
 
       const helper = new THREE.PositionalAudioHelper(positionalAudio, 10);
-      positionalAudio.add(helper);
+      // positionalAudio.add(helper);
 
       this.scene.add(positionalAudio);
     }

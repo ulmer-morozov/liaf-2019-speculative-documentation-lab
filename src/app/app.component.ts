@@ -1,12 +1,10 @@
 import * as THREE from 'three';
-
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
-import Stats from 'three/examples/jsm/libs/stats.module';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
+import Stats from 'three/examples/jsm/libs/stats.module';
 
 import {
   Component,
@@ -37,10 +35,14 @@ import { AnimationTask } from './AnimationTask';
 declare const require: (path: string) => any;
 
 interface IAudioTrack {
-  url: string;
+  readonly url: string;
 }
 
-const rotationPrecession = 1000;
+
+interface IClickAction {
+  readonly names: string[];
+  readonly url?: string;
+}
 
 @Component({
   selector: 'app-root',
@@ -51,6 +53,15 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('audioTrack') audioTrackRefs !: QueryList<ElementRef<HTMLAudioElement>>;
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('droneAudioTrack', { static: true }) droneAudioTrackRefs !: ElementRef<HTMLAudioElement>;
+
+  public readonly audioTracks: IAudioTrack[] = [
+    {
+      url: './assets/tourist-tinder-coffeecod.mp3'
+    },
+    {
+      url: './assets/kelpenian.mp3'
+    }
+  ];
 
   public soundIsActivated = false;
   public loadingProgress = 0;
@@ -81,43 +92,42 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private time = 0;
 
-  public readonly audioTracks: IAudioTrack[] = [
-    {
-      url: './assets/tourist-tinder-coffeecod.mp3'
-    },
-    {
-      url: './assets/kelpenian.mp3'
-    }
-  ];
+  private readonly hborder = 0.3;
+  private readonly vborder = 0.1;
+
+  private readonly verticalAngleAmp = Math.PI / 12;
+
+  private destXAngle = 0;
+  private destYAngle = 0;
 
   private readonly animationTasks: AnimationTask[] = [
 
   ];
 
-  private readonly actionMap: { [linkName: string]: readonly string[] } = {
-    The_link: ['book_rotate'],
-    is_link: ['isa'],
-    global_link: ['globalwave'],
-    that_link: ['thatconnects', 'greenstrand21', 'redstrand21'],
-    intimate_link: ['intimate'],
-    and_link: ['chart_rotate'],
-    celestial_link: ['painting'],
-    //
-    // with_link: [''], //https://youtu.be/7UT3XFHe-Rs
+  private readonly actionMap: { [linkName: string]: IClickAction } = {
+    The_link: { names: ['book_rotate'] },
+    is_link: { names: ['isa'] },
+    global_link: { names: ['globalwave'] },
+    that_link: { names: ['thatconnects', 'greenstrand21', 'redstrand21'] },
+    intimate_link: { names: ['intimate'] },
+    and_link: { names: ['chart_rotate'] },
+    celestial_link: { names: ['painting'] },
+    // video link
+    with_link: { names: [], url: 'https://youtu.be/7UT3XFHe-Rs' },
     // guys
-    fish_link: ['fish_chat'],
-    fishman_link: ['fish_chat', 'fish_link'],
-    blacklist_link: ['blacklist_chat'],
-    blacklistman_link: ['blacklist_chat', 'blacklist_link'],
-    local_link: ['localist_chat'],
-    localman__link: ['localist_chat', 'local_link'],
-    florist_link: ['florist_chat'],
-    floraman_link: ['florist_chat', 'florist_link'],
-    artist_link: ['artist_chat'],
-    artistman_link: ['artist_chat', 'artist_link'],
-    //
-    of_moon_link: ['themoon', 'moon'],
-    and_sun_link: ['andthesun', 'sun']
+    fish_link: { names: ['fish_chat'] },
+    fishman_link: { names: ['fish_chat', 'fish_link'] },
+    blacklist_link: { names: ['blacklist_chat'] },
+    blacklistman_link: { names: ['blacklist_chat', 'blacklist_link'] },
+    local_link: { names: ['localist_chat'] },
+    localman__link: { names: ['localist_chat', 'local_link'] },
+    florist_link: { names: ['florist_chat'] },
+    floraman_link: { names: ['florist_chat', 'florist_link'] },
+    artist_link: { names: ['artist_chat'] },
+    artistman_link: { names: ['artist_chat', 'artist_link'] },
+    // stars
+    of_moon_link: { names: ['themoon', 'moon'] },
+    and_sun_link: { names: ['andthesun', 'sun'] }
   };
 
   constructor(private changeDetector: ChangeDetectorRef) {
@@ -129,7 +139,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.frame = new FrameParams();
 
     this.cameraHolder = new THREE.Object3D();
-
     // this.cameraHolder.rotation.y = Math.PI / 1.5;
 
     this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.005, 10000);
@@ -146,7 +155,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const meshLoader = new GLTFLoader();
     meshLoader.setDRACOLoader(dracoLoader);
-
 
     const processGltf = gltf => {
       const patcher = new GltfPatcher();
@@ -208,7 +216,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public ngAfterViewInit(): void {
-
     this.changeDetector.detach();
   }
 
@@ -216,7 +223,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     link.disabled = true;
 
     const isAManLink = link.mesh.name.includes('man');
-    // debugger;
 
     if (!isAManLink) {
       const animationTask = new AnimationTask(link.mesh, 0, this.time, 300);
@@ -230,7 +236,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    relatedObjects.forEach(
+    if (relatedObjects.url !== undefined)
+      window.open(relatedObjects.url, '_blank');
+
+    relatedObjects.names.forEach(
       objName => {
         const obj = this.scene.getObjectByName(objName) as THREE.Mesh; // приведение неявное
 
@@ -238,8 +247,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
           console.error(`targetName not found ${link.mesh.name}  -->  ${objName}`);
           return;
         }
-
-        // console.log(objName);
 
         if (obj.name.includes('link'))
           this.animationTasks.push(new AnimationTask(obj, 0, this.time, 300));
@@ -259,13 +266,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       canvas: this.canvasRef.nativeElement
     });
 
-    // this.renderer.gammaFactor = 2.2;
     this.renderer.gammaOutput = true;
-    // this.renderer.toneMapping = THREE.Uncharted2ToneMapping;
-    // this.renderer.toneMappingExposure = 0.1;
-    // this.renderer.toneMappingWhitePoint = 0.1;
-    // this.renderer
-
     this.scene = new THREE.Scene();
 
     this.stats = new Stats();
@@ -280,68 +281,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private fillScene(): void {
-    const loader = new THREE.FontLoader();
-    const font = loader.parse(require('three/examples/fonts/helvetiker_regular.typeface.json'));
-
-    let xMid: number;
-    let text: THREE.Mesh;
-
-    this.textMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      side: THREE.DoubleSide
-    });
-
-    const message = 'LOFOTEN';
-    const shapes = font.generateShapes(message, 3, 0);
-    this.textGeometry = new THREE.ShapeBufferGeometry(shapes);
-    this.textGeometry.computeBoundingBox();
-
-    xMid = - 0.5 * (this.textGeometry.boundingBox.max.x - this.textGeometry.boundingBox.min.x);
-
-    this.textGeometry.translate(xMid, 0, 0);
-
-    text = new THREE.Mesh(this.textGeometry, this.textMaterial);
-    text.position.set(20, 0, 2);
-
-    this.textGeometry.boundingBox.translate(text.position);
-
     this.scene.add(new THREE.HemisphereLight(0xffffff, 1));
 
-
-    // скроем интерактивные элементы
-
-    for (const key in this.actionMap) {
-      if (!this.actionMap.hasOwnProperty(key))
-        continue;
-
-      const switchableObjectNames = this.actionMap[key];
-
-      if (switchableObjectNames === undefined) {
-        console.error(`Map for object with name ${key} is undefined.`);
-        continue;
-      }
-
-      for (const switchableObjectName of switchableObjectNames) {
-        // console.log(`${key} --> ${switchableObjectName}`);
-
-        // не будем скрывать ссылки, но оставим возможность скрывать их при нажатии на чуваков
-        if (switchableObjectName.includes('link'))
-          continue;
-
-        const switchableObject = this.scene.getObjectByName(switchableObjectName);
-
-        if (switchableObject === undefined) {
-          console.error(`Object with name ${switchableObjectName} not found.`);
-          continue;
-        }
-
-        switchableObject.visible = false;
-      }
-
-    }
-
+    this.hideInfo();
     this.scene.add(this.cameraHolder);
-
   }
 
   private stopGameLoop = (): void => {
@@ -355,14 +298,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private startGameLoop = (): void => {
     this.requestAnimationId = requestAnimationFrame(this.gameLoop);
   }
-
-  private readonly hborder = 0.3;
-  private readonly vborder = 0.1;
-
-  private readonly verticalAngleAmp = Math.PI / 12;
-
-  private destXAngle = 0;
-  private destYAngle = 0;
 
   private gameLoop = (newTime: number): void => {
     this.stats.begin();
@@ -385,15 +320,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
         * Math.pow(Math.abs(this.frame.mouse.posRel.x) - this.hborder, 2);
 
       this.destYAngle = this.cameraHolder.rotation.y + dy;
-
-    } else {
-
     }
 
     this.frame.raycaster.setFromCamera(this.frame.mouse.posRel, this.userCamera);
 
     this.links.forEach(x => x.updateSelected(this.frame));
-
     this.offsetAnimatedObjects.forEach(x => x.update(this.frame));
 
     if (this.controls === undefined) {
@@ -416,14 +347,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.startGameLoop();
     this.stats.end();
-
-
-    // debugger;
-    // this.controls.rotateUp(this.mouse.posRel.y);
-
-    // this.controls.
-
-    // console.log(this.mouse.posRel.y);
 
     this.time = newTime;
   }
@@ -481,18 +404,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   }
 
-  public onkeydown(e: KeyboardEvent) {
-
-    // // переход на DEBUG Camera
-    // if (e.code === 'Space') {
-    //   this.renderPass.camera = this.renderPass.camera === this.userCamera
-    //     ? this.debugCamera
-    //     : this.userCamera;
-
-    //   return;
-    // }
-  }
-
   public onMouseMove(e: MouseEvent) {
     this.frame.mouse.posAbs.x = e.clientX;
     this.frame.mouse.posAbs.y = e.clientY;
@@ -507,6 +418,35 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public onMouseUp() {
     this.frame.mouse.leftBtn = false;
+  }
+
+  private hideInfo(): void {
+    for (const key in this.actionMap) {
+      if (!this.actionMap.hasOwnProperty(key))
+        continue;
+
+      const switchableObjectMap = this.actionMap[key];
+
+      if (switchableObjectMap === undefined) {
+        console.error(`Map for object with name ${key} is undefined.`);
+        continue;
+      }
+
+      for (const switchableObjectName of switchableObjectMap.names) {
+        // не будем скрывать ссылки, но оставим возможность скрывать их при нажатии на чуваков
+        if (switchableObjectName.includes('link'))
+          continue;
+
+        const switchableObject = this.scene.getObjectByName(switchableObjectName);
+
+        if (switchableObject === undefined) {
+          console.error(`Object with name ${switchableObjectName} not found.`);
+          continue;
+        }
+
+        switchableObject.visible = false;
+      }
+    }
   }
 
   @HostListener('window: resize')

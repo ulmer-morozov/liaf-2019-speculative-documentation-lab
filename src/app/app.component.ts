@@ -454,6 +454,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.updateLayout();
   }
 
+  @HostListener('wheel', ['$event'])
+  public onMousewheel(event: WheelEvent) {
+    console.log(`${event.type}  |   ${event.deltaY} | pixels: ${event.deltaMode === event.DOM_DELTA_PIXEL}  | lines: ${event.deltaMode === event.DOM_DELTA_LINE}`);
+  }
+
   public ngOnDestroy(): void {
     this.stopGameLoop();
   }

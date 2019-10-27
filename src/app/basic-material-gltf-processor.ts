@@ -18,7 +18,7 @@ export class BasicMaterialGltfProcessor extends GltfProcessor<void> {
         console.log(obj.name);
 
         const mesh = obj as THREE.Mesh;
-
+        
         // мультиматериалы пропускаем
         if (Array.isArray(mesh.material))
             return;

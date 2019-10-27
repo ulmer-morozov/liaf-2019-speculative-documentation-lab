@@ -18,8 +18,6 @@ import {
   ChangeDetectorRef
 } from '@angular/core';
 
-declare const Pace: any;
-
 import { SpritePlane } from './sprite-plane';
 import { GltfPatcher } from './gltf-patcher';
 import { MenuGltfProcessor } from './menu-gltf-processor';
@@ -31,13 +29,16 @@ import { SpriteAnimatorGltfProcessor } from './sprite-animator-gltf-processor';
 import { OffsetAnimatedMesh } from './offset-animated-mesh';
 import { OffsetAnimatorGltfProcessor } from './offset-animator-gltf-processor';
 import { AnimationTask } from './AnimationTask';
-
-declare const require: (path: string) => any;
+import { OrderGltfProcessor } from './order-gltf-processor';
+import { RotatablesGltfProcessor } from './rotatables-gltf-processor';
+import { Rotatable } from './rotatable';
 
 interface IAudioTrack {
   readonly url: string;
+  readonly angle: number;
+  readonly outer: number;
+  readonly inner: number;
 }
-
 
 interface IClickAction {
   readonly names: string[];
@@ -54,12 +55,32 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('droneAudioTrack', { static: true }) droneAudioTrackRefs !: ElementRef<HTMLAudioElement>;
 
+  private readonly rotatables: Rotatable[] = [];
+
   public readonly audioTracks: IAudioTrack[] = [
     {
-      url: './assets/tourist-tinder-coffeecod.mp3'
+      url: './assets/tourist-tinder-coffeecod.mp3',
+      angle: 320,
+      inner: 40,
+      outer: 50
     },
     {
-      url: './assets/kelpenian.mp3'
+      url: './assets/kelp_globetrotter.mp3',
+      angle: 220,
+      inner: 40,
+      outer: 50
+    },
+    {
+      url: './assets/kelpenian.mp3',
+      angle: 45,
+      inner: 40,
+      outer: 50
+    },
+    {
+      url: './assets/tourists.mp3',
+      angle: 120,
+      inner: 40,
+      outer: 50
     }
   ];
 
@@ -86,9 +107,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private readonly screenCenterAbs: THREE.Vector2;
   private readonly frame: FrameParams;
-
-  private textGeometry: THREE.BufferGeometry;
-  private textMaterial: THREE.MeshBasicMaterial;
 
   private time = 0;
 
@@ -141,7 +159,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cameraHolder = new THREE.Object3D();
     // this.cameraHolder.rotation.y = Math.PI / 1.5;
 
-    this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.005, 10000);
+    this.userCamera = new THREE.PerspectiveCamera(50, 1, 0.005, 1000);
     this.userCamera.position.z = 1.001;
 
     this.cameraHolder.add(this.userCamera);
@@ -164,16 +182,22 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       const materialProcessor = new BasicMaterialGltfProcessor();
       const offsetAnimatedProcessor = new OffsetAnimatorGltfProcessor();
 
+      const rotatableProcessor = new RotatablesGltfProcessor();
+
       const result = patcher.patch(gltf, [
         materialProcessor,
         spriteProcessor,
         offsetAnimatedProcessor,
-        menuProcessor
+        menuProcessor,
+        rotatableProcessor,
+        new OrderGltfProcessor(),
       ]);
 
       this.links.push(menuProcessor.getResult());
       this.sprites.push(...spriteProcessor.getResult());
       this.offsetAnimatedObjects.push(...offsetAnimatedProcessor.getResult());
+
+      this.rotatables.push(...rotatableProcessor.getResult());
 
       this.links.forEach(x => x.setOnClick(this.onLinkClick.bind(this)));
       this.scene.add(result.group);
@@ -262,15 +286,14 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     // this.controls = new OrbitControls(this.userCamera, this.canvasRef.nativeElement);
 
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      canvas: this.canvasRef.nativeElement
+      canvas: this.canvasRef.nativeElement,
+      antialias: true
     });
 
     this.renderer.gammaOutput = true;
     this.scene = new THREE.Scene();
 
     this.stats = new Stats();
-    // this.canvasRef.nativeElement.after(this.stats.dom);
 
     this.renderPass = new RenderPass(this.scene, this.userCamera);
 
@@ -305,6 +328,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.frame.time = newTime;
     this.frame.delta = Math.round(newTime - this.time);
 
+    if (this.lastWheelTime === undefined)
+      this.lastWheelTime = newTime;
+
+
     if (Math.abs(this.frame.mouse.posRel.y) > this.vborder) {
       this.destXAngle = this.verticalAngleAmp
         * Math.sign(this.frame.mouse.posRel.y)
@@ -313,7 +340,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.destXAngle = 0;
     }
 
-    if (Math.abs(this.frame.mouse.posRel.x) > this.hborder) {
+    // чтобы положение мышки не конфликтовало с колесом мышки
+    const wheelDelta = newTime - this.lastWheelTime;
+    const deltaWasRecentlyUpdated = wheelDelta < 300;
+
+    if (!deltaWasRecentlyUpdated && Math.abs(this.frame.mouse.posRel.x) > this.hborder) {
 
       const dy = -0.890
         * Math.sign(this.frame.mouse.posRel.x)
@@ -321,6 +352,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.destYAngle = this.cameraHolder.rotation.y + dy;
     }
+
+    this.destYAngle += this.additionalWheelRot;
+    this.additionalWheelRot = 0;
 
     this.frame.raycaster.setFromCamera(this.frame.mouse.posRel, this.userCamera);
 
@@ -332,8 +366,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.cameraHolder.rotation.y = this.cameraHolder.rotation.y + (this.destYAngle - this.cameraHolder.rotation.y) / 10;
     }
 
-    this.sprites.forEach(x => x.update(this.frame.delta));
-
     for (let i = this.animationTasks.length - 1; i >= 0; i--) {
       const animationTask = this.animationTasks[i];
 
@@ -342,6 +374,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       if (completed)
         this.animationTasks.splice(i, 1);
     }
+
+    this.sprites.forEach(x => x.update(this.frame.delta));
+    this.rotatables.forEach(rotatable => rotatable.rotate(-this.frame.mouse.posRel.y / 8, 0, -this.frame.mouse.posRel.x / 2));
 
     this.composer.render();
 
@@ -377,12 +412,13 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.changeDetector.detectChanges();
 
     this.droneAudioTrackRefs.nativeElement.play();
-    this.droneAudioTrackRefs.nativeElement.volume = 0.5;
+    this.droneAudioTrackRefs.nativeElement.volume = 0.1;
 
     const audioTrackRefs = this.audioTrackRefs.toArray();
 
     for (let i = 0; i < audioTrackRefs.length; i++) {
       const audioElement = audioTrackRefs[i].nativeElement;
+      const audioTrackPref = this.audioTracks[i];
 
       const listener = new THREE.AudioListener();
       this.renderPass.camera.add(listener);
@@ -391,17 +427,15 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
       const positionalAudio = new THREE.PositionalAudio(listener);
 
-      positionalAudio.rotateY(i * Math.PI / 2);
+      positionalAudio.rotateY(audioTrackPref.angle * Math.PI / 180);
       positionalAudio.setRefDistance(10);
-      positionalAudio.setDirectionalCone(90, 120, 0);
+      positionalAudio.setDirectionalCone(audioTrackPref.inner, audioTrackPref.outer, 0);
       positionalAudio.setMediaElementSource(audioElement as any);
 
-      const helper = new THREE.PositionalAudioHelper(positionalAudio, 10);
-      // positionalAudio.add(helper);
+      // positionalAudio.add(new THREE.PositionalAudioHelper(positionalAudio, 10));
 
       this.scene.add(positionalAudio);
     }
-
   }
 
   public onMouseMove(e: MouseEvent) {
@@ -454,9 +488,26 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.updateLayout();
   }
 
-  @HostListener('wheel', ['$event'])
+  private additionalWheelRot = 0;
+  private lastWheelTime: number = 0;
+
+  @HostListener('document:wheel', ['$event'])
   public onMousewheel(event: WheelEvent) {
-    console.log(`${event.type}  |   ${event.deltaY} | pixels: ${event.deltaMode === event.DOM_DELTA_PIXEL}  | lines: ${event.deltaMode === event.DOM_DELTA_LINE}`);
+    // console.log(`${event.type}  |   ${event.deltaY} | pixels: ${event.deltaMode === event.DOM_DELTA_PIXEL}  | lines: ${event.deltaMode === event.DOM_DELTA_LINE}`);
+
+    if (event.deltaMode === event.DOM_DELTA_PIXEL)
+      this.additionalWheelRot += event.deltaY / 1000;
+    else
+      this.additionalWheelRot += event.deltaY / 10;
+
+    this.lastWheelTime = undefined;
+
+    // console.log('additionalWheelRot ' + this.additionalWheelRot);
+  }
+
+  @HostListener('window: click')
+  public onClick() {
+    this.activateSound();
   }
 
   public ngOnDestroy(): void {

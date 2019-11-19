@@ -15,7 +15,7 @@ export class BasicMaterialGltfProcessor extends GltfProcessor<void> {
         if (obj.type !== 'Mesh')
             return;
 
-        console.log(obj.name);
+        // console.log(obj.name);
 
         const mesh = obj as THREE.Mesh;
         

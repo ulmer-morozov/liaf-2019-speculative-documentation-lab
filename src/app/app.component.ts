@@ -38,6 +38,7 @@ interface IAudioTrack {
   readonly angle: number;
   readonly outer: number;
   readonly inner: number;
+  readonly volume: number;
 }
 
 interface IClickAction {
@@ -62,25 +63,29 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       url: './assets/tourist-tinder-coffeecod.mp3',
       angle: 320,
       inner: 40,
-      outer: 50
+      outer: 50,
+      volume: 0.5
     },
     {
       url: './assets/kelp_globetrotter.mp3',
       angle: 220,
       inner: 40,
-      outer: 50
+      outer: 50,
+      volume: 0
     },
     {
       url: './assets/kelpenian.mp3',
       angle: 45,
       inner: 40,
-      outer: 50
+      outer: 50,
+      volume: 0
     },
     {
       url: './assets/tourists.mp3',
       angle: 120,
       inner: 40,
-      outer: 50
+      outer: 50,
+      volume: 0
     }
   ];
 
@@ -423,7 +428,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       const listener = new THREE.AudioListener();
       this.renderPass.camera.add(listener);
 
+      audioElement.volume = audioTrackPref.volume;
       audioElement.play();
+
+      console.log(`audio: ${ audioElement.volume}`);
 
       const positionalAudio = new THREE.PositionalAudio(listener);
 
@@ -431,6 +439,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       positionalAudio.setRefDistance(10);
       positionalAudio.setDirectionalCone(audioTrackPref.inner, audioTrackPref.outer, 0);
       positionalAudio.setMediaElementSource(audioElement as any);
+
+      // positionalAudio.gain.
+      // positionalAudio.setVolume(audioElement.volume);
 
       // positionalAudio.add(new THREE.PositionalAudioHelper(positionalAudio, 10));
 

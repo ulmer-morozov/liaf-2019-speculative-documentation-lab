@@ -20,7 +20,7 @@ export class RotatablesGltfProcessor extends GltfProcessor<Rotatable[]> {
         if (obj.type !== 'Mesh')
             return;
 
-        console.log(obj.name);
+        // console.log(obj.name);
 
         const mesh = obj as THREE.Mesh;
 

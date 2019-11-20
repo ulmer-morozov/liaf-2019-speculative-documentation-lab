@@ -1,37 +1,38 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { GLTFLoader, GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
+import {EffectComposer} from 'three/examples/jsm/postprocessing/EffectComposer';
+import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
+import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader';
 import Stats from 'three/examples/jsm/libs/stats.module';
 
 import {
+  AfterViewInit,
+  ChangeDetectorRef,
   Component,
-  ViewChild,
   ElementRef,
   HostListener,
-  OnDestroy, ViewChildren,
-  QueryList,
-  AfterViewInit,
+  OnDestroy,
   OnInit,
-  ChangeDetectorRef
+  QueryList,
+  ViewChild,
+  ViewChildren
 } from '@angular/core';
 
-import { SpritePlane } from './sprite-plane';
-import { GltfPatcher } from './gltf-patcher';
-import { MenuGltfProcessor } from './menu-gltf-processor';
-import { BasicMaterialGltfProcessor } from './basic-material-gltf-processor';
-import { MenuGroup } from './MenuGroup';
-import { FrameParams } from './frameParams';
-import { MenuLink } from './MenuLink';
-import { SpriteAnimatorGltfProcessor } from './sprite-animator-gltf-processor';
-import { OffsetAnimatedMesh } from './offset-animated-mesh';
-import { OffsetAnimatorGltfProcessor } from './offset-animator-gltf-processor';
-import { AnimationTask } from './AnimationTask';
-import { OrderGltfProcessor } from './order-gltf-processor';
-import { RotatablesGltfProcessor } from './rotatables-gltf-processor';
-import { Rotatable } from './rotatable';
+import {SpritePlane} from './sprite-plane';
+import {GltfPatcher} from './gltf-patcher';
+import {MenuGltfProcessor} from './menu-gltf-processor';
+import {BasicMaterialGltfProcessor} from './basic-material-gltf-processor';
+import {MenuGroup} from './MenuGroup';
+import {FrameParams} from './frameParams';
+import {MenuLink} from './MenuLink';
+import {SpriteAnimatorGltfProcessor} from './sprite-animator-gltf-processor';
+import {OffsetAnimatedMesh} from './offset-animated-mesh';
+import {OffsetAnimatorGltfProcessor} from './offset-animator-gltf-processor';
+import {AnimationTask} from './AnimationTask';
+import {OrderGltfProcessor} from './order-gltf-processor';
+import {RotatablesGltfProcessor} from './rotatables-gltf-processor';
+import {Rotatable} from './rotatable';
 
 interface IAudioTrack {
   readonly url: string;
@@ -53,10 +54,12 @@ interface IClickAction {
 })
 export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('audioTrack') audioTrackRefs !: QueryList<ElementRef<HTMLAudioElement>>;
-  @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('droneAudioTrack', { static: true }) droneAudioTrackRefs !: ElementRef<HTMLAudioElement>;
+  @ViewChild('canvas', {static: true}) canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('droneAudioTrack', {static: true}) droneAudioTrackRefs !: ElementRef<HTMLAudioElement>;
 
   private readonly rotatables: Rotatable[] = [];
+
+  public introIsShown = true;
 
   public readonly audioTracks: IAudioTrack[] = [
     {
@@ -64,28 +67,28 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       angle: 320,
       inner: 40,
       outer: 50,
-      volume: 0.5
+      volume: 0.1
     },
     {
       url: './assets/kelp_globetrotter.mp3',
       angle: 220,
       inner: 40,
       outer: 50,
-      volume: 0
+      volume: 0.6
     },
     {
       url: './assets/kelpenian.mp3',
       angle: 45,
       inner: 40,
       outer: 50,
-      volume: 0
+      volume: 0.3
     },
     {
       url: './assets/tourists.mp3',
       angle: 120,
       inner: 40,
       outer: 50,
-      volume: 0
+      volume: 1
     }
   ];
 
@@ -123,34 +126,32 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private destXAngle = 0;
   private destYAngle = 0;
 
-  private readonly animationTasks: AnimationTask[] = [
-
-  ];
+  private readonly animationTasks: AnimationTask[] = [];
 
   private readonly actionMap: { [linkName: string]: IClickAction } = {
-    The_link: { names: ['book_rotate'] },
-    is_link: { names: ['isa'] },
-    global_link: { names: ['globalwave'] },
-    that_link: { names: ['thatconnects', 'greenstrand21', 'redstrand21'] },
-    intimate_link: { names: ['intimate'] },
-    and_link: { names: ['chart_rotate'] },
-    celestial_link: { names: ['painting'] },
+    The_link: {names: ['book_rotate']},
+    is_link: {names: ['isa']},
+    global_link: {names: ['globalwave']},
+    that_link: {names: ['thatconnects', 'greenstrand21', 'redstrand21']},
+    intimate_link: {names: ['intimate']},
+    and_link: {names: ['chart_rotate']},
+    celestial_link: {names: ['painting']},
     // video link
-    with_link: { names: [], url: 'https://youtu.be/7UT3XFHe-Rs' },
+    with_link: {names: [], url: 'https://youtu.be/7UT3XFHe-Rs'},
     // guys
-    fish_link: { names: ['fish_chat'] },
-    fishman_link: { names: ['fish_chat', 'fish_link'] },
-    blacklist_link: { names: ['blacklist_chat'] },
-    blacklistman_link: { names: ['blacklist_chat', 'blacklist_link'] },
-    local_link: { names: ['localist_chat'] },
-    localman__link: { names: ['localist_chat', 'local_link'] },
-    florist_link: { names: ['florist_chat'] },
-    floraman_link: { names: ['florist_chat', 'florist_link'] },
-    artist_link: { names: ['artist_chat'] },
-    artistman_link: { names: ['artist_chat', 'artist_link'] },
+    fish_link: {names: ['fish_chat']},
+    fishman_link: {names: ['fish_chat', 'fish_link']},
+    blacklist_link: {names: ['blacklist_chat']},
+    blacklistman_link: {names: ['blacklist_chat', 'blacklist_link']},
+    local_link: {names: ['localist_chat']},
+    localman__link: {names: ['localist_chat', 'local_link']},
+    florist_link: {names: ['florist_chat']},
+    floraman_link: {names: ['florist_chat', 'florist_link']},
+    artist_link: {names: ['artist_chat']},
+    artistman_link: {names: ['artist_chat', 'artist_link']},
     // stars
-    of_moon_link: { names: ['themoon', 'moon'] },
-    and_sun_link: { names: ['andthesun', 'sun'] }
+    of_moon_link: {names: ['themoon', 'moon']},
+    and_sun_link: {names: ['andthesun', 'sun']}
   };
 
   constructor(private changeDetector: ChangeDetectorRef) {
@@ -231,7 +232,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       //   this.fillScene();
       //   this.startGameLoop();
       // });
-
 
 
     };
@@ -321,11 +321,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     cancelAnimationFrame(this.requestAnimationId);
     this.requestAnimationId = undefined;
-  }
+  };
 
   private startGameLoop = (): void => {
     this.requestAnimationId = requestAnimationFrame(this.gameLoop);
-  }
+  };
 
   private gameLoop = (newTime: number): void => {
     this.stats.begin();
@@ -389,7 +389,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.stats.end();
 
     this.time = newTime;
-  }
+  };
 
   private updateLayout(): void {
     const dpr = devicePixelRatio <= 2 ? devicePixelRatio : 2;
@@ -431,7 +431,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       audioElement.volume = audioTrackPref.volume;
       audioElement.play();
 
-      console.log(`audio: ${ audioElement.volume}`);
+      console.log(`audio: ${audioElement.volume}`);
 
       const positionalAudio = new THREE.PositionalAudio(listener);
 
@@ -523,5 +523,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public ngOnDestroy(): void {
     this.stopGameLoop();
+  }
+
+  public start() {
+    this.activateSound();
+    this.introIsShown = false;
+    this.changeDetector.detectChanges();
   }
 }

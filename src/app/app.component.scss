@@ -35,3 +35,97 @@ canvas {
   background-color: #ff9100;
   z-index: 1;
 }
+
+.intro-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-color: rgba(0, 0, 0, 0.8);
+  transition: 0.2s opacity cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.intro {
+  position: relative;
+  background-image: url('/assets/about_bg.jpg');
+  background-size: cover;
+
+  img.bg {
+    display: block;
+    user-select: none;
+  }
+
+  a {
+    display: inline-block;
+    position: absolute;
+    cursor: pointer;
+
+    svg {
+      display: block;
+      transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
+  a.link {
+    svg {
+      background-color: black;
+      fill: #35dace;
+    }
+
+    &:hover {
+      svg {
+        background-color: black;
+        fill: white;
+      }
+    }
+
+  }
+
+  a.liaf {
+    left: 649px;
+    top: 156px;
+  }
+
+  a.fridaymilk {
+    left: 566px;
+    top: 432px;
+  }
+
+  a.hakapik {
+    left: 660px;
+    top: 448px;
+  }
+
+  a.fluc28 {
+    left: 536px;
+    top: 492px;
+  }
+
+  a.action {
+    left: 883px;
+    top: 629px;
+
+    svg {
+      background-color: black;
+      fill: #35dace;
+    }
+
+    &:hover {
+      svg {
+        background-color: #35dace;
+        fill: black;
+      }
+    }
+  }
+}

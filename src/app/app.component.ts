@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import {EffectComposer} from 'three/examples/jsm/postprocessing/EffectComposer';
-import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
-import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
-import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import Stats from 'three/examples/jsm/libs/stats.module';
 
 import {
@@ -19,20 +19,20 @@ import {
   ViewChildren
 } from '@angular/core';
 
-import {SpritePlane} from './sprite-plane';
-import {GltfPatcher} from './gltf-patcher';
-import {MenuGltfProcessor} from './menu-gltf-processor';
-import {BasicMaterialGltfProcessor} from './basic-material-gltf-processor';
-import {MenuGroup} from './MenuGroup';
-import {FrameParams} from './frameParams';
-import {MenuLink} from './MenuLink';
-import {SpriteAnimatorGltfProcessor} from './sprite-animator-gltf-processor';
-import {OffsetAnimatedMesh} from './offset-animated-mesh';
-import {OffsetAnimatorGltfProcessor} from './offset-animator-gltf-processor';
-import {AnimationTask} from './AnimationTask';
-import {OrderGltfProcessor} from './order-gltf-processor';
-import {RotatablesGltfProcessor} from './rotatables-gltf-processor';
-import {Rotatable} from './rotatable';
+import { SpritePlane } from './sprite-plane';
+import { GltfPatcher } from './gltf-patcher';
+import { MenuGltfProcessor } from './menu-gltf-processor';
+import { BasicMaterialGltfProcessor } from './basic-material-gltf-processor';
+import { MenuGroup } from './MenuGroup';
+import { FrameParams } from './frameParams';
+import { MenuLink } from './MenuLink';
+import { SpriteAnimatorGltfProcessor } from './sprite-animator-gltf-processor';
+import { OffsetAnimatedMesh } from './offset-animated-mesh';
+import { OffsetAnimatorGltfProcessor } from './offset-animator-gltf-processor';
+import { AnimationTask } from './AnimationTask';
+import { OrderGltfProcessor } from './order-gltf-processor';
+import { RotatablesGltfProcessor } from './rotatables-gltf-processor';
+import { Rotatable } from './rotatable';
 
 interface IAudioTrack {
   readonly url: string;
@@ -54,42 +54,47 @@ interface IClickAction {
 })
 export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('audioTrack') audioTrackRefs !: QueryList<ElementRef<HTMLAudioElement>>;
-  @ViewChild('canvas', {static: true}) canvasRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('droneAudioTrack', {static: true}) droneAudioTrackRefs !: ElementRef<HTMLAudioElement>;
+  @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('droneAudioTrack', { static: true }) droneAudioTrackRefs !: ElementRef<HTMLAudioElement>;
 
   private readonly rotatables: Rotatable[] = [];
 
   public introIsShown = true;
 
   public readonly audioTracks: IAudioTrack[] = [
+    // гугловский язык рыбный
     {
       url: './assets/tourist-tinder-coffeecod.mp3',
-      angle: 320,
-      inner: 40,
-      outer: 50,
-      volume: 0.1
+      angle: -70,
+      inner: 30,
+      outer: 80,
+      volume: 0.2
     },
-    {
-      url: './assets/kelp_globetrotter.mp3',
-      angle: 220,
-      inner: 40,
-      outer: 50,
-      volume: 0.6
-    },
-    {
-      url: './assets/kelpenian.mp3',
-      angle: 45,
-      inner: 40,
-      outer: 50,
-      volume: 0.3
-    },
+        // диалог Марион
+        {
+          url: './assets/kelp_globetrotter.mp3',
+          angle: -147.5,
+          inner: 45,
+          outer: 55,
+          volume: 1.0
+        },
+    // туристы
     {
       url: './assets/tourists.mp3',
-      angle: 120,
-      inner: 40,
-      outer: 50,
+      angle: -240,
+      inner: 100,
+      outer: 110,
       volume: 1
-    }
+    },
+        // келпский - Жанна
+        {
+          url: './assets/kelpenian.mp3',
+          angle: -307.5,
+          inner: 75,
+          outer: 85,
+          volume: 0.3
+        },
+
   ];
 
   public soundIsActivated = false;
@@ -129,29 +134,29 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly animationTasks: AnimationTask[] = [];
 
   private readonly actionMap: { [linkName: string]: IClickAction } = {
-    The_link: {names: ['book_rotate']},
-    is_link: {names: ['isa']},
-    global_link: {names: ['globalwave']},
-    that_link: {names: ['thatconnects', 'greenstrand21', 'redstrand21']},
-    intimate_link: {names: ['intimate']},
-    and_link: {names: ['chart_rotate']},
-    celestial_link: {names: ['painting']},
+    The_link: { names: ['book_rotate'] },
+    is_link: { names: ['isa'] },
+    global_link: { names: ['globalwave'] },
+    that_link: { names: ['thatconnects', 'greenstrand21', 'redstrand21'] },
+    intimate_link: { names: ['intimate'] },
+    and_link: { names: ['chart_rotate'] },
+    celestial_link: { names: ['painting'] },
     // video link
-    with_link: {names: [], url: 'https://youtu.be/7UT3XFHe-Rs'},
+    with_link: { names: [], url: 'https://youtu.be/7UT3XFHe-Rs' },
     // guys
-    fish_link: {names: ['fish_chat']},
-    fishman_link: {names: ['fish_chat', 'fish_link']},
-    blacklist_link: {names: ['blacklist_chat']},
-    blacklistman_link: {names: ['blacklist_chat', 'blacklist_link']},
-    local_link: {names: ['localist_chat']},
-    localman__link: {names: ['localist_chat', 'local_link']},
-    florist_link: {names: ['florist_chat']},
-    floraman_link: {names: ['florist_chat', 'florist_link']},
-    artist_link: {names: ['artist_chat']},
-    artistman_link: {names: ['artist_chat', 'artist_link']},
+    fish_link: { names: ['fish_chat'] },
+    fishman_link: { names: ['fish_chat', 'fish_link'] },
+    blacklist_link: { names: ['blacklist_chat'] },
+    blacklistman_link: { names: ['blacklist_chat', 'blacklist_link'] },
+    local_link: { names: ['localist_chat'] },
+    localman__link: { names: ['localist_chat', 'local_link'] },
+    florist_link: { names: ['florist_chat'] },
+    floraman_link: { names: ['florist_chat', 'florist_link'] },
+    artist_link: { names: ['artist_chat'] },
+    artistman_link: { names: ['artist_chat', 'artist_link'] },
     // stars
-    of_moon_link: {names: ['themoon', 'moon']},
-    and_sun_link: {names: ['andthesun', 'sun']}
+    of_moon_link: { names: ['themoon', 'moon'] },
+    and_sun_link: { names: ['andthesun', 'sun'] }
   };
 
   constructor(private changeDetector: ChangeDetectorRef) {
@@ -214,26 +219,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.fillScene();
       this.startGameLoop();
-
-      // meshLoader.load('./assets/aurora.glb', auroraModel => {
-
-
-      // const auroraMesh = auroraModel.children[0] as THREE.Mesh;
-
-      // auroraMesh.scale.set(auroraMesh.scale.x, -auroraMesh.scale.y, auroraMesh.scale.z);
-
-      // auroraMesh.position.y = 1000;
-      // (auroraMesh.material as THREE.MeshLambertMaterial).transparent = true;
-      // this.scene.add(auroraMesh);
-
-
-      //   processGltf(auroraModel);
-
-      //   this.fillScene();
-      //   this.startGameLoop();
-      // });
-
-
     };
 
     const onMeshLoadProgress = (event: ProgressEvent): void => {
@@ -351,7 +336,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (!deltaWasRecentlyUpdated && Math.abs(this.frame.mouse.posRel.x) > this.hborder) {
 
-      const dy = -0.890
+      const dy = -0.5
         * Math.sign(this.frame.mouse.posRel.x)
         * Math.pow(Math.abs(this.frame.mouse.posRel.x) - this.hborder, 2);
 

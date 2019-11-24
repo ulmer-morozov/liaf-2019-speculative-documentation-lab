@@ -21,7 +21,33 @@
 ></audio>
 <audio #droneAudioTrack loop preload="auto" src="./assets/drone.mp3"></audio>
 
-<div [class.hidden]="!introIsShown" class="intro-wrapper">
+<a *ngIf="!introIsShown" [class.muted]="muted" (click)="muteToggle()" class="mute">
+  <svg *ngIf="!muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 888.56">
+    <path class="light" d="M349.82 339.21L584 187v515.67L349.82 549.21zM228.98 340.62h61.78v208.43h-61.78z"/>
+    <path class="light" transform="rotate(-180 663.44 444.83)" d="M632.72 321.83h61.45v245.99h-61.45z"/>
+  </svg>
+
+  <svg *ngIf="muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 888.56">
+    <path class="light" d="M349.82,339.21,584,187V702.67L349.82,549.21Z"/>
+    <rect class="light" x="228.98" y="340.62" width="61.78" height="208.43"/>
+    <rect x="499.87" y="247.9" width="161.12" height="386.19" transform="translate(-141.83 539.59) rotate(-45)"/>
+    <rect x="499.87" y="247.9" width="161.12" height="386.19" transform="translate(679.02 1163.26) rotate(-135)"/>
+    <rect class="light" x="549.71" y="295.7" width="61.45" height="290.59"
+          transform="translate(-141.83 539.59) rotate(-45)"/>
+    <rect class="light"  x="549.71" y="295.7" width="61.45" height="290.59"
+          transform="translate(679.02 1163.26) rotate(-135)"/>
+  </svg>
+</a>
+
+<a *ngIf="!introIsShown" (click)="showAbout()" class="info">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 904.53">
+    <text class="light" transform="translate(338.45 714.43)" font-size="653.26" fill="#fff" font-family="Agrandir-GrandHeavy,Agrandir"
+          font-weight="800">i
+    </text>
+  </svg>
+</a>
+
+<div [class.hidden]="!introIsShown && !aboutIsShown" class="intro-wrapper">
   <div class="intro">
 
     <img src="./assets/text.svg" class="bg"/>
@@ -62,12 +88,27 @@
       </svg>
     </a>
 
-    <a (click)="start()" class="action">
+    <a *ngIf="introIsShown" (click)="start()" class="action">
       <svg xmlns="http://www.w3.org/2000/svg" width="92.5" height="34.2" viewBox="0 0 184.75 68.37">
-        <!-- <path d="M0 0h184.75v68.37H0z" data-name="Rectangle 2 copy 3"/> -->
         <path
           d="M56.48 28.38c-3.35 0-6.21 1.53-7.25 3.87v-9.41H43v19.39h5.31l.8-3.45c1 2.36 3.92 3.87 7.3 3.87 4.79 0 7.91-2.81 7.91-7.12s-3.05-7.15-7.84-7.15zM53.6 38.57c-2.78 0-4.63-1.2-4.63-3s1.85-3.07 4.63-3.07 4.63 1.22 4.63 3.07-1.82 3-4.63 3zm24.07-10.19c-6.22 0-10.56 2.93-10.56 7.12 0 4.37 4.68 7.15 11.6 7.15 3.58 0 7-.8 8.84-2l-1.69-2.91a15.36 15.36 0 01-6.71 1.35c-2.52 0-4.86-.62-5.57-2.18h14a5.47 5.47 0 00.19-1.4c.04-4.3-3.99-7.13-10.1-7.13zm-4.19 5.92c.23-1.5 1.92-2.57 4.13-2.57s3.93 1 4 2.57zm32.11-2.13c-1-2.31-3.69-3.79-6.84-3.79-5 0-8.16 2.73-8.16 7s3.09 6.84 7.93 6.84c3.12 0 5.9-1 7.05-2.65v.65c0 2.37-2.62 3.85-6.78 3.85a15 15 0 01-7.18-1.74l-2 4c1.81 1.08 5.39 1.78 9.39 1.78 7.8 0 12.66-3.09 12.66-8V28.79h-5.31zm-4.34 6.61c-2.76 0-4.53-1.3-4.53-3.25s1.77-3.25 4.53-3.25 4.52 1.3 4.52 3.25-1.77 3.25-4.52 3.25zm17.62-17.4c-2 0-3.41 1.22-3.41 3a3.43 3.43 0 006.81 0c0-1.78-1.43-3-3.4-3zm-3.07 20.85h6.14V28.82h-6.14zm23.33-13.85c-3.35 0-5.9 1.45-7.15 3.69l-.65-3.25H126v13.41h6.14v-6.29c0-2.55 1.58-4 4.18-4 2.29 0 3.62 1.27 3.62 3.4v6.94h6.11v-7.59c.05-3.92-2.66-6.31-6.92-6.31z"
           fill-rule="evenodd"/>
+      </svg>
+    </a>
+
+    <a *ngIf="aboutIsShown" (click)="continue()" class="action">
+      <svg xmlns="http://www.w3.org/2000/svg" width="123.4" height="34.2" viewBox="0 0 246.75 68.37">
+        <path d="M0 0h246.75v68.37H0z" data-name="Rectangle 2 copy 5"/>
+        <text transform="translate(36.21 41.89)" font-size="26" fill="#fff" font-family="Agrandir-GrandHeavy,Agrandir"
+              font-weight="800" letter-spacing=".06em">c
+          <tspan x="24.16" y="0" letter-spacing=".07em">o</tspan>
+          <tspan x="48.61" y="0">n</tspan>
+          <tspan x="71.99" y="0" letter-spacing=".07em">t</tspan>
+          <tspan x="92.83" y="0" letter-spacing=".07em">i</tspan>
+          <tspan x="103.14" y="0" letter-spacing=".07em">n</tspan>
+          <tspan x="126.98" y="0" letter-spacing=".07em">u</tspan>
+          <tspan x="150.62" y="0">e</tspan>
+        </text>
       </svg>
     </a>
 

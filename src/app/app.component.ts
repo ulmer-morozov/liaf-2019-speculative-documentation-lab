@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
+import {EffectComposer} from 'three/examples/jsm/postprocessing/EffectComposer';
+import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
+import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader';
 import Stats from 'three/examples/jsm/libs/stats.module';
 
 import {
@@ -19,20 +19,20 @@ import {
   ViewChildren
 } from '@angular/core';
 
-import { SpritePlane } from './sprite-plane';
-import { GltfPatcher } from './gltf-patcher';
-import { MenuGltfProcessor } from './menu-gltf-processor';
-import { BasicMaterialGltfProcessor } from './basic-material-gltf-processor';
-import { MenuGroup } from './MenuGroup';
-import { FrameParams } from './frameParams';
-import { MenuLink } from './MenuLink';
-import { SpriteAnimatorGltfProcessor } from './sprite-animator-gltf-processor';
-import { OffsetAnimatedMesh } from './offset-animated-mesh';
-import { OffsetAnimatorGltfProcessor } from './offset-animator-gltf-processor';
-import { AnimationTask } from './AnimationTask';
-import { OrderGltfProcessor } from './order-gltf-processor';
-import { RotatablesGltfProcessor } from './rotatables-gltf-processor';
-import { Rotatable } from './rotatable';
+import {SpritePlane} from './sprite-plane';
+import {GltfPatcher} from './gltf-patcher';
+import {MenuGltfProcessor} from './menu-gltf-processor';
+import {BasicMaterialGltfProcessor} from './basic-material-gltf-processor';
+import {MenuGroup} from './MenuGroup';
+import {FrameParams} from './frameParams';
+import {MenuLink} from './MenuLink';
+import {SpriteAnimatorGltfProcessor} from './sprite-animator-gltf-processor';
+import {OffsetAnimatedMesh} from './offset-animated-mesh';
+import {OffsetAnimatorGltfProcessor} from './offset-animator-gltf-processor';
+import {AnimationTask} from './AnimationTask';
+import {OrderGltfProcessor} from './order-gltf-processor';
+import {RotatablesGltfProcessor} from './rotatables-gltf-processor';
+import {Rotatable} from './rotatable';
 
 interface IAudioTrack {
   readonly url: string;
@@ -54,12 +54,14 @@ interface IClickAction {
 })
 export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('audioTrack') audioTrackRefs !: QueryList<ElementRef<HTMLAudioElement>>;
-  @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('droneAudioTrack', { static: true }) droneAudioTrackRefs !: ElementRef<HTMLAudioElement>;
+  @ViewChild('canvas', {static: true}) canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('droneAudioTrack', {static: true}) droneAudioTrackRef !: ElementRef<HTMLAudioElement>;
 
   private readonly rotatables: Rotatable[] = [];
 
+  public aboutIsShown = false;
   public introIsShown = true;
+  public muted = false;
 
   public readonly audioTracks: IAudioTrack[] = [
     // гугловский язык рыбный
@@ -70,30 +72,30 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       outer: 80,
       volume: 0.2
     },
-        // диалог Марион
-        {
-          url: './assets/kelp_globetrotter.mp3',
-          angle: -147.5,
-          inner: 45,
-          outer: 55,
-          volume: 1.0
-        },
+    // диалог Марион
+    {
+      url: './assets/kelp_globetrotter.mp3',
+      angle: -147.5,
+      inner: 45,
+      outer: 55,
+      volume: 1.0
+    },
     // туристы
     {
       url: './assets/tourists.mp3',
-      angle: -240,
-      inner: 100,
-      outer: 110,
+      angle: -245,
+      inner: 70,
+      outer: 100,
       volume: 1
     },
-        // келпский - Жанна
-        {
-          url: './assets/kelpenian.mp3',
-          angle: -307.5,
-          inner: 75,
-          outer: 85,
-          volume: 0.3
-        },
+    // келпский - Жанна
+    {
+      url: './assets/kelpenian.mp3',
+      angle: -315,
+      inner: 30,
+      outer: 70,
+      volume: 0.3
+    },
 
   ];
 
@@ -111,6 +113,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private composer: EffectComposer;
 
   private renderPass: RenderPass;
+
+  private additionalWheelRot = 0;
+  private lastWheelTime = 0;
 
   private readonly links: MenuGroup[];
   private readonly sprites: SpritePlane[];
@@ -132,31 +137,32 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private destYAngle = 0;
 
   private readonly animationTasks: AnimationTask[] = [];
+  private readonly positionalAudios: THREE.PositionalAudio[] = [];
 
   private readonly actionMap: { [linkName: string]: IClickAction } = {
-    The_link: { names: ['book_rotate'] },
-    is_link: { names: ['isa'] },
-    global_link: { names: ['globalwave'] },
-    that_link: { names: ['thatconnects', 'greenstrand21', 'redstrand21'] },
-    intimate_link: { names: ['intimate'] },
-    and_link: { names: ['chart_rotate'] },
-    celestial_link: { names: ['painting'] },
+    The_link: {names: ['book_rotate']},
+    is_link: {names: ['isa']},
+    global_link: {names: ['globalwave']},
+    that_link: {names: ['thatconnects', 'greenstrand21', 'redstrand21']},
+    intimate_link: {names: ['intimate']},
+    and_link: {names: ['chart_rotate']},
+    celestial_link: {names: ['painting']},
     // video link
-    with_link: { names: [], url: 'https://youtu.be/7UT3XFHe-Rs' },
+    with_link: {names: [], url: 'https://youtu.be/7UT3XFHe-Rs'},
     // guys
-    fish_link: { names: ['fish_chat'] },
-    fishman_link: { names: ['fish_chat', 'fish_link'] },
-    blacklist_link: { names: ['blacklist_chat'] },
-    blacklistman_link: { names: ['blacklist_chat', 'blacklist_link'] },
-    local_link: { names: ['localist_chat'] },
-    localman__link: { names: ['localist_chat', 'local_link'] },
-    florist_link: { names: ['florist_chat'] },
-    floraman_link: { names: ['florist_chat', 'florist_link'] },
-    artist_link: { names: ['artist_chat'] },
-    artistman_link: { names: ['artist_chat', 'artist_link'] },
+    fish_link: {names: ['fish_chat']},
+    fishman_link: {names: ['fish_chat', 'fish_link']},
+    blacklist_link: {names: ['blacklist_chat']},
+    blacklistman_link: {names: ['blacklist_chat', 'blacklist_link']},
+    local_link: {names: ['localist_chat']},
+    localman__link: {names: ['localist_chat', 'local_link']},
+    florist_link: {names: ['florist_chat']},
+    floraman_link: {names: ['florist_chat', 'florist_link']},
+    artist_link: {names: ['artist_chat']},
+    artistman_link: {names: ['artist_chat', 'artist_link']},
     // stars
-    of_moon_link: { names: ['themoon', 'moon'] },
-    and_sun_link: { names: ['andthesun', 'sun'] }
+    of_moon_link: {names: ['themoon', 'moon']},
+    and_sun_link: {names: ['andthesun', 'sun']}
   };
 
   constructor(private changeDetector: ChangeDetectorRef) {
@@ -398,11 +404,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.soundIsActivated)
       return;
 
+    this.muted = false;
     this.soundIsActivated = true;
     this.changeDetector.detectChanges();
 
-    this.droneAudioTrackRefs.nativeElement.play();
-    this.droneAudioTrackRefs.nativeElement.volume = 0.1;
+    this.droneAudioTrackRef.nativeElement.play();
+    this.droneAudioTrackRef.nativeElement.volume = 0.1;
 
     const audioTrackRefs = this.audioTrackRefs.toArray();
 
@@ -424,12 +431,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       positionalAudio.setRefDistance(10);
       positionalAudio.setDirectionalCone(audioTrackPref.inner, audioTrackPref.outer, 0);
       positionalAudio.setMediaElementSource(audioElement as any);
-
-      // positionalAudio.gain.
-      // positionalAudio.setVolume(audioElement.volume);
+      positionalAudio.setLoop(true);
 
       // positionalAudio.add(new THREE.PositionalAudioHelper(positionalAudio, 10));
 
+      this.positionalAudios.push(positionalAudio);
       this.scene.add(positionalAudio);
     }
   }
@@ -479,13 +485,46 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  public mute(): void {
+    if (!this.soundIsActivated || this.muted)
+      return;
+
+    this.muted = true;
+    this.droneAudioTrackRef.nativeElement.pause();
+
+    const audioTrackRefs = this.audioTrackRefs.toArray();
+    audioTrackRefs.forEach(x => x.nativeElement.pause());
+
+    this.changeDetector.detectChanges();
+  }
+
+  public unMute(): void {
+    if (!this.soundIsActivated || !this.muted)
+      return;
+
+    this.muted = false;
+    this.droneAudioTrackRef.nativeElement.play();
+
+    const audioTrackRefs = this.audioTrackRefs.toArray();
+    audioTrackRefs.forEach(x => x.nativeElement.play());
+
+    this.changeDetector.detectChanges();
+  }
+
+  public muteToggle(): void {
+    if (this.muted) {
+      this.unMute();
+      return;
+    }
+
+    this.mute();
+  }
+
+
   @HostListener('window: resize')
   public onResize() {
     this.updateLayout();
   }
-
-  private additionalWheelRot = 0;
-  private lastWheelTime: number = 0;
 
   @HostListener('document:wheel', ['$event'])
   public onMousewheel(event: WheelEvent) {
@@ -501,18 +540,24 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     // console.log('additionalWheelRot ' + this.additionalWheelRot);
   }
 
-  @HostListener('window: click')
-  public onClick() {
-    this.activateSound();
+  public showAbout(): void {
+    this.aboutIsShown = true;
+    this.changeDetector.detectChanges();
   }
 
   public ngOnDestroy(): void {
     this.stopGameLoop();
   }
 
-  public start() {
+  public start(): void {
     this.activateSound();
+
     this.introIsShown = false;
+    this.changeDetector.detectChanges();
+  }
+
+  public continue(): void {
+    this.aboutIsShown = false;
     this.changeDetector.detectChanges();
   }
 }

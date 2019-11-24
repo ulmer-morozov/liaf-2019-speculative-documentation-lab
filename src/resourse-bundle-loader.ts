@@ -212,10 +212,12 @@ export class ResourseBundleLoader<TData = void> {
       const record = this.loadingDict[key];
       const itemProgress = (record.loaded / record.total) * itemProgressMax;
 
-      console.log(`item e.loaded: ${e.loaded}  e.total: ${e.total}`);
+      console.log(`${url} loaded: ${e.loaded}  total: ${e.total}`);
 
-      if (isNaN(itemProgress))
+      if (isNaN(itemProgress)) {
         debugger;
+        continue;
+      }
 
       progress += itemProgress;
     }

@@ -7,6 +7,8 @@ import {ResourceBundle} from './resource-bundle';
 import {stringIsEmptyOrUndefined} from './utils';
 import {AjaxTextureLoader} from './ajax-texture-loader';
 
+// import {GLTFLoader2} from './GLTFLoader2';
+
 interface ILoadingRecord {
   readonly loaded: number;
   readonly total: number;
@@ -201,7 +203,15 @@ export class ResourseBundleLoader<TData = void> {
   }
 
   private onLoadingProgress = (url: string, e: ProgressEvent): void => {
-    this.loadingDict[url] = {loaded: e.loaded, total: e.total};
+
+    if (e.total === 0) {
+      this.loadingDict[url] = {loaded: e.loaded, total: e.loaded + 1};
+      debugger
+      console.log(`${url} loaded: ${e.loaded}  total: ${e.total} fixed!`);
+    } else {
+      this.loadingDict[url] = {loaded: e.loaded, total: e.total};
+      console.log(`${url} loaded: ${e.loaded}  total: ${e.total}`);
+    }
     const itemProgressMax = 1 / this.resourceBook.urlCount;
 
     let progress = 0;
@@ -212,12 +222,6 @@ export class ResourseBundleLoader<TData = void> {
       const record = this.loadingDict[key];
       const itemProgress = (record.loaded / record.total) * itemProgressMax;
 
-      console.log(`${url} loaded: ${e.loaded}  total: ${e.total}`);
-
-      if (isNaN(itemProgress)) {
-        debugger;
-        continue;
-      }
 
       progress += itemProgress;
     }

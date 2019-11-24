@@ -215,7 +215,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loadingProgress = Math.round(100 * x) / 100;
       this.changeDetector.detectChanges();
 
-      console.log(`progress ${x}`);
+      // console.log(`progress ${x}`);
     });
 
     bundleLoader.complete.subscribe(bundle => {
@@ -231,7 +231,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.startGameLoop();
 
 
-      console.log(`complete!`);
+      // console.log(`complete!`);
 
       this.changeDetector.detectChanges();
     });

@@ -1,6 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 904.53">
-  <path d="M0 0h888.56v888.56H0z"/>
-  <text transform="translate(338.45 714.43)" font-size="653.26" fill="#fff" font-family="Agrandir-GrandHeavy,Agrandir"
-        font-weight="800">i
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 888.56">
+  <path class="light"
+        d="M358.71 265.64c0-44.42 35.92-75.12 85.57-75.12s85.58 30.7 85.58 75.12-35.93 75.78-85.58 75.78-85.57-31.36-85.57-75.78zm8.49 111.71h154.17v337.08H367.2z"/>
 </svg>

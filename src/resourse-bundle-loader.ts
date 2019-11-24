@@ -148,11 +148,11 @@ export class ResourseBundleLoader<TData = void> {
 
   private loadFile(url: string): void {
     const fileLoader = new THREE.FileLoader(this.loadingManager);
-    fileLoader.setResponseType('arraybuffer');
+    fileLoader.setResponseType('blob');
 
     fileLoader.load(
       url,
-      (t: ArrayBuffer) => this.onFileLoad(url, t),
+      (t: any) => this.onFileLoad(url, t),
       e => this.onLoadingProgress(url, e)
     );
     // console.log(`${url} added to LoadingManager`);
@@ -189,16 +189,12 @@ export class ResourseBundleLoader<TData = void> {
     this.gltfMeshDict[url] = gltf;
   }
 
-  private onFileLoad(url: string, buffer: ArrayBuffer): void {
-    let mimeType = 'application/octet-stream';
+  private onFileLoad(url: string, blob: Blob): void {
 
-    if (url.indexOf('mp3') >= 0)
-      mimeType = 'audio/mpeg';
-
-    if (url.indexOf('svg') >= 0)
-      mimeType = 'image/svg+xml';
-
-    const blob = new Blob([buffer], {type: mimeType});
+    if (url.indexOf('svg') >= 0) {
+      // перезапишем mime
+      blob = blob.slice(0, blob.size, 'image/svg+xml');
+    }
 
     const objUrl = URL.createObjectURL(blob);
     this.fileDict[url] = objUrl;

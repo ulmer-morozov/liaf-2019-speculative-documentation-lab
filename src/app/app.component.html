@@ -16,10 +16,8 @@
   #audioTrack
   *ngFor="let track of audioTracks"
   loop
-  preload="auto"
-  [src]="track.url"
 ></audio>
-<audio #droneAudioTrack loop preload="auto" src="./assets/drone.mp3"></audio>
+<audio #droneAudioTrack loop preload="auto"></audio>
 
 <a *ngIf="!introIsShown" [class.muted]="muted" (click)="muteToggle()" class="mute">
   <svg *ngIf="!muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 888.56">
@@ -47,10 +45,10 @@
   </svg>
 </a>
 
-<div [class.hidden]="!introIsShown && !aboutIsShown" class="intro-wrapper">
+<div *ngIf="loaded" [class.hidden]="!introIsShown && !aboutIsShown" class="intro-wrapper">
   <div class="intro">
 
-    <img src="./assets/text.svg" class="bg"/>
+    <img [src]="aboutBgFinalImageUrl" class="bg"/>
 
     <a href="https://www.hakapik.no" class="link hakapik">
       <svg xmlns="http://www.w3.org/2000/svg" width="88.5" height="16.5" viewBox="0 0 177 33">

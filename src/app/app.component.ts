@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import {EffectComposer} from 'three/examples/jsm/postprocessing/EffectComposer';
-import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
+import {GLTF} from 'three/examples/jsm/loaders/GLTFLoader';
 import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
-import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader';
 import Stats from 'three/examples/jsm/libs/stats.module';
 
 import {
@@ -33,6 +32,10 @@ import {AnimationTask} from './AnimationTask';
 import {OrderGltfProcessor} from './order-gltf-processor';
 import {RotatablesGltfProcessor} from './rotatables-gltf-processor';
 import {Rotatable} from './rotatable';
+import {ResourseBundleLoader} from '../resourse-bundle-loader';
+import {ResourceBook} from '../ResourceBook';
+import {ResourceBundle} from '../resource-bundle';
+import {DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
 interface IAudioTrack {
   readonly url: string;
@@ -46,6 +49,9 @@ interface IClickAction {
   readonly names: string[];
   readonly url?: string;
 }
+
+const aboutBgImageUrl = './assets/text.svg';
+const droneAudioPath = './assets/drone.mp3';
 
 @Component({
   selector: 'app-root',
@@ -62,6 +68,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   public aboutIsShown = false;
   public introIsShown = true;
   public muted = false;
+
+  public loaded = false;
 
   public readonly audioTracks: IAudioTrack[] = [
     // гугловский язык рыбный
@@ -139,6 +147,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly animationTasks: AnimationTask[] = [];
   private readonly positionalAudios: THREE.PositionalAudio[] = [];
 
+  private bundle: ResourceBundle;
+
+  public aboutBgFinalImageUrl: SafeResourceUrl;
+
+
   private readonly actionMap: { [linkName: string]: IClickAction } = {
     The_link: {names: ['book_rotate']},
     is_link: {names: ['isa']},
@@ -165,7 +178,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     and_sun_link: {names: ['andthesun', 'sun']}
   };
 
-  constructor(private changeDetector: ChangeDetectorRef) {
+  constructor(private changeDetector: ChangeDetectorRef, private domSanitizer: DomSanitizer) {
     this.offsetAnimatedObjects = [];
     this.sprites = [];
     this.links = [];
@@ -185,59 +198,81 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   public ngOnInit(): void {
     this.initThreeJs();
 
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('./assets/libs/draco/');
+    const meshSceneModelUrl = './assets/lofoscene.glb';
+    const files = this.audioTracks.map(x => x.url);
 
-    const meshLoader = new GLTFLoader();
-    meshLoader.setDRACOLoader(dracoLoader);
+    files.push(droneAudioPath);
+    files.push(aboutBgImageUrl);
 
-    const processGltf = gltf => {
-      const patcher = new GltfPatcher();
+    const resourceBook = new ResourceBook({
+      meshUrl: meshSceneModelUrl,
+      fileUrls: files
+    });
 
-      const menuProcessor = new MenuGltfProcessor();
-      const spriteProcessor = new SpriteAnimatorGltfProcessor();
-      const materialProcessor = new BasicMaterialGltfProcessor();
-      const offsetAnimatedProcessor = new OffsetAnimatorGltfProcessor();
+    const bundleLoader = new ResourseBundleLoader(resourceBook);
 
-      const rotatableProcessor = new RotatablesGltfProcessor();
+    bundleLoader.progress.subscribe(x => {
+      this.loadingProgress = Math.round(100 * x) / 100;
+      this.changeDetector.detectChanges();
 
-      const result = patcher.patch(gltf, [
-        materialProcessor,
-        spriteProcessor,
-        offsetAnimatedProcessor,
-        menuProcessor,
-        rotatableProcessor,
-        new OrderGltfProcessor(),
-      ]);
+      console.log(`progress ${x}`);
+    });
 
-      this.links.push(menuProcessor.getResult());
-      this.sprites.push(...spriteProcessor.getResult());
-      this.offsetAnimatedObjects.push(...offsetAnimatedProcessor.getResult());
+    bundleLoader.complete.subscribe(bundle => {
+      const model = bundle.gltfDict[meshSceneModelUrl];
 
-      this.rotatables.push(...rotatableProcessor.getResult());
+      this.loaded = true;
+      this.bundle = bundle;
 
-      this.links.forEach(x => x.setOnClick(this.onLinkClick.bind(this)));
-      this.scene.add(result.group);
-    };
+      this.aboutBgFinalImageUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(bundle.fileDict[aboutBgImageUrl]);
 
-    const onMeshLoaded = (sceneGltf: GLTF) => {
-      processGltf(sceneGltf);
-
+      this.processGltf(model);
       this.fillScene();
       this.startGameLoop();
-    };
 
-    const onMeshLoadProgress = (event: ProgressEvent): void => {
-      this.loadingProgress = Math.round(100 * event.loaded / event.total) / 100;
+
+      console.log(`complete!`);
+
       this.changeDetector.detectChanges();
-    };
+    });
 
-    meshLoader.load('./assets/lofoscene.glb', onMeshLoaded, onMeshLoadProgress);
+
+    bundleLoader.load();
   }
 
   public ngAfterViewInit(): void {
     this.changeDetector.detach();
   }
+
+  private processGltf(gltf: GLTF): void {
+    const patcher = new GltfPatcher();
+
+    const menuProcessor = new MenuGltfProcessor();
+    const spriteProcessor = new SpriteAnimatorGltfProcessor();
+    const materialProcessor = new BasicMaterialGltfProcessor();
+    const offsetAnimatedProcessor = new OffsetAnimatorGltfProcessor();
+
+    const rotatableProcessor = new RotatablesGltfProcessor();
+
+    const result = patcher.patch(gltf, [
+      materialProcessor,
+      spriteProcessor,
+      offsetAnimatedProcessor,
+      menuProcessor,
+      rotatableProcessor,
+      new OrderGltfProcessor(),
+    ]);
+
+    this.links.push(menuProcessor.getResult());
+    this.sprites.push(...spriteProcessor.getResult());
+    this.offsetAnimatedObjects.push(...offsetAnimatedProcessor.getResult());
+
+    this.rotatables.push(...rotatableProcessor.getResult());
+
+    this.links.forEach(x => x.setOnClick(this.onLinkClick.bind(this)));
+    this.scene.add(result.group);
+  }
+
 
   private onLinkClick(link: MenuLink): void {
     link.disabled = true;
@@ -408,6 +443,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.soundIsActivated = true;
     this.changeDetector.detectChanges();
 
+    this.droneAudioTrackRef.nativeElement.src = this.bundle.fileDict[droneAudioPath];
     this.droneAudioTrackRef.nativeElement.play();
     this.droneAudioTrackRef.nativeElement.volume = 0.1;
 
@@ -417,13 +453,14 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       const audioElement = audioTrackRefs[i].nativeElement;
       const audioTrackPref = this.audioTracks[i];
 
+      const url = this.bundle.fileDict[audioTrackPref.url];
+      audioElement.src = url;
+
       const listener = new THREE.AudioListener();
       this.renderPass.camera.add(listener);
 
       audioElement.volume = audioTrackPref.volume;
       audioElement.play();
-
-      console.log(`audio: ${audioElement.volume}`);
 
       const positionalAudio = new THREE.PositionalAudio(listener);
 
@@ -431,7 +468,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       positionalAudio.setRefDistance(10);
       positionalAudio.setDirectionalCone(audioTrackPref.inner, audioTrackPref.outer, 0);
       positionalAudio.setMediaElementSource(audioElement as any);
-      positionalAudio.setLoop(true);
 
       // positionalAudio.add(new THREE.PositionalAudioHelper(positionalAudio, 10));
 
@@ -441,6 +477,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public onMouseMove(e: MouseEvent) {
+    if (this.introIsShown || this.aboutIsShown || !this.loaded)
+      return;
+
     this.frame.mouse.posAbs.x = e.clientX;
     this.frame.mouse.posAbs.y = e.clientY;
 
@@ -449,6 +488,9 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public onMouseDown(e: MouseEvent) {
+    if (this.introIsShown || this.aboutIsShown || !this.loaded)
+      return;
+
     this.frame.mouse.leftBtn = e.button === 0;
   }
 

@@ -203,15 +203,22 @@ export class ResourseBundleLoader<TData = void> {
   }
 
   private onLoadingProgress = (url: string, e: ProgressEvent): void => {
+    let total = e.total;
 
-    if (e.total === 0) {
-      this.loadingDict[url] = {loaded: e.loaded, total: e.loaded + 1};
-      debugger
-      console.log(`${url} loaded: ${e.loaded}  total: ${e.total} fixed!`);
+    if (total === 0) {
+      if (url.indexOf('lofoscene.glb') >= 0)
+        total = 7456348;
+      else
+        total = e.loaded + 1;
+
+      console.log(`${url} loaded: ${e.loaded}  total: ${e.total} fixed => ${total}`);
     } else {
-      this.loadingDict[url] = {loaded: e.loaded, total: e.total};
+      total = e.total;
       console.log(`${url} loaded: ${e.loaded}  total: ${e.total}`);
     }
+
+    this.loadingDict[url] = {loaded: e.loaded, total: total};
+
     const itemProgressMax = 1 / this.resourceBook.urlCount;
 
     let progress = 0;

@@ -15,8 +15,8 @@
 <audio
   #audioTrack
   *ngFor="let track of audioTracks"
-  loop
-></audio>
+  loop>
+</audio>
 <audio #droneAudioTrack loop preload="auto"></audio>
 
 <a *ngIf="!introIsShown" [class.muted]="muted" (click)="muteToggle()" class="mute">

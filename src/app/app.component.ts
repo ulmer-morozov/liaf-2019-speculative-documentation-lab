@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import {EffectComposer} from 'three/examples/jsm/postprocessing/EffectComposer';
-import {GLTF} from 'three/examples/jsm/loaders/GLTFLoader';
-import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import Stats from 'three/examples/jsm/libs/stats.module';
 
 import {
@@ -18,24 +18,24 @@ import {
   ViewChildren
 } from '@angular/core';
 
-import {SpritePlane} from './sprite-plane';
-import {GltfPatcher} from './gltf-patcher';
-import {MenuGltfProcessor} from './menu-gltf-processor';
-import {BasicMaterialGltfProcessor} from './basic-material-gltf-processor';
-import {MenuGroup} from './MenuGroup';
-import {FrameParams} from './frameParams';
-import {MenuLink} from './MenuLink';
-import {SpriteAnimatorGltfProcessor} from './sprite-animator-gltf-processor';
-import {OffsetAnimatedMesh} from './offset-animated-mesh';
-import {OffsetAnimatorGltfProcessor} from './offset-animator-gltf-processor';
-import {AnimationTask} from './AnimationTask';
-import {OrderGltfProcessor} from './order-gltf-processor';
-import {RotatablesGltfProcessor} from './rotatables-gltf-processor';
-import {Rotatable} from './rotatable';
-import {ResourseBundleLoader} from '../resourse-bundle-loader';
-import {ResourceBook} from '../ResourceBook';
-import {ResourceBundle} from '../resource-bundle';
-import {DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
+import { SpritePlane } from './sprite-plane';
+import { GltfPatcher } from './gltf-patcher';
+import { MenuGltfProcessor } from './menu-gltf-processor';
+import { BasicMaterialGltfProcessor } from './basic-material-gltf-processor';
+import { MenuGroup } from './MenuGroup';
+import { FrameParams } from './frameParams';
+import { MenuLink } from './MenuLink';
+import { SpriteAnimatorGltfProcessor } from './sprite-animator-gltf-processor';
+import { OffsetAnimatedMesh } from './offset-animated-mesh';
+import { OffsetAnimatorGltfProcessor } from './offset-animator-gltf-processor';
+import { AnimationTask } from './AnimationTask';
+import { OrderGltfProcessor } from './order-gltf-processor';
+import { RotatablesGltfProcessor } from './rotatables-gltf-processor';
+import { Rotatable } from './rotatable';
+import { ResourseBundleLoader } from '../resourse-bundle-loader';
+import { ResourceBook } from '../ResourceBook';
+import { ResourceBundle } from '../resource-bundle';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 interface IAudioTrack {
   readonly url: string;
@@ -60,8 +60,8 @@ const droneAudioPath = './assets/drone.mp3';
 })
 export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('audioTrack') audioTrackRefs !: QueryList<ElementRef<HTMLAudioElement>>;
-  @ViewChild('canvas', {static: true}) canvasRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('droneAudioTrack', {static: true}) droneAudioTrackRef !: ElementRef<HTMLAudioElement>;
+  @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('droneAudioTrack', { static: true }) droneAudioTrackRef !: ElementRef<HTMLAudioElement>;
 
   private readonly rotatables: Rotatable[] = [];
 
@@ -153,29 +153,29 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
 
   private readonly actionMap: { [linkName: string]: IClickAction } = {
-    The_link: {names: ['book_rotate']},
-    is_link: {names: ['isa']},
-    global_link: {names: ['globalwave']},
-    that_link: {names: ['thatconnects', 'greenstrand21', 'redstrand21']},
-    intimate_link: {names: ['intimate']},
-    and_link: {names: ['chart_rotate']},
-    celestial_link: {names: ['painting']},
+    The_link: { names: ['book_rotate'] },
+    is_link: { names: ['isa'] },
+    global_link: { names: ['globalwave'] },
+    that_link: { names: ['thatconnects', 'greenstrand21', 'redstrand21'] },
+    intimate_link: { names: ['intimate'] },
+    and_link: { names: ['chart_rotate'] },
+    celestial_link: { names: ['painting'] },
     // video link
-    with_link: {names: [], url: 'https://youtu.be/7UT3XFHe-Rs'},
+    with_link: { names: [], url: 'https://youtu.be/7UT3XFHe-Rs' },
     // guys
-    fish_link: {names: ['fish_chat']},
-    fishman_link: {names: ['fish_chat', 'fish_link']},
-    blacklist_link: {names: ['blacklist_chat']},
-    blacklistman_link: {names: ['blacklist_chat', 'blacklist_link']},
-    local_link: {names: ['localist_chat']},
-    localman__link: {names: ['localist_chat', 'local_link']},
-    florist_link: {names: ['florist_chat']},
-    floraman_link: {names: ['florist_chat', 'florist_link']},
-    artist_link: {names: ['artist_chat']},
-    artistman_link: {names: ['artist_chat', 'artist_link']},
+    fish_link: { names: ['fish_chat'] },
+    fishman_link: { names: ['fish_chat', 'fish_link'] },
+    blacklist_link: { names: ['blacklist_chat'] },
+    blacklistman_link: { names: ['blacklist_chat', 'blacklist_link'] },
+    local_link: { names: ['localist_chat'] },
+    localman__link: { names: ['localist_chat', 'local_link'] },
+    florist_link: { names: ['florist_chat'] },
+    floraman_link: { names: ['florist_chat', 'florist_link'] },
+    artist_link: { names: ['artist_chat'] },
+    artistman_link: { names: ['artist_chat', 'artist_link'] },
     // stars
-    of_moon_link: {names: ['themoon', 'moon']},
-    and_sun_link: {names: ['andthesun', 'sun']}
+    of_moon_link: { names: ['themoon', 'moon'] },
+    and_sun_link: { names: ['andthesun', 'sun'] }
   };
 
   constructor(private changeDetector: ChangeDetectorRef, private domSanitizer: DomSanitizer) {
@@ -224,7 +224,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loaded = true;
       this.bundle = bundle;
 
-      this.aboutBgFinalImageUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(bundle.fileDict[aboutBgImageUrl]);
+      this.aboutBgFinalImageUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(aboutBgImageUrl);
 
       this.processGltf(model);
       this.fillScene();
@@ -443,9 +443,15 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.soundIsActivated = true;
     this.changeDetector.detectChanges();
 
-    this.droneAudioTrackRef.nativeElement.src = this.bundle.fileDict[droneAudioPath];
-    this.droneAudioTrackRef.nativeElement.play();
-    this.droneAudioTrackRef.nativeElement.volume = 0.1;
+    const droneAudioElement = this.droneAudioTrackRef.nativeElement;
+    const droneSourceElement = document.createElement('source');
+    droneAudioElement.appendChild(droneSourceElement);
+
+    droneSourceElement.src = this.bundle.fileDict[droneAudioPath];
+    droneSourceElement.type = 'audio/mp3';
+
+    droneAudioElement.play();
+    droneAudioElement.volume = 0.1;
 
     const audioTrackRefs = this.audioTrackRefs.toArray();
 
@@ -454,12 +460,17 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       const audioTrackPref = this.audioTracks[i];
 
       const url = this.bundle.fileDict[audioTrackPref.url];
-      audioElement.src = url;
+      const sourceElement = document.createElement('source');
+
+      sourceElement.src = url;
+      sourceElement.type = 'audio/mp3';
+      audioElement.appendChild(sourceElement);
 
       const listener = new THREE.AudioListener();
       this.renderPass.camera.add(listener);
 
       audioElement.volume = audioTrackPref.volume;
+      // audioElement.load();
       audioElement.play();
 
       const positionalAudio = new THREE.PositionalAudio(listener);
@@ -592,6 +603,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public start(): void {
+    debugger;
     this.activateSound();
 
     this.introIsShown = false;

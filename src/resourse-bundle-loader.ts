@@ -1,11 +1,11 @@
 import * as THREE from 'three/src/Three';
-import {BehaviorSubject, Observable, Subject} from 'rxjs';
-import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
-import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader';
-import {ResourceBook} from './ResourceBook';
-import {ResourceBundle} from './resource-bundle';
-import {stringIsEmptyOrUndefined} from './utils';
-import {AjaxTextureLoader} from './ajax-texture-loader';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
+import { ResourceBook } from './ResourceBook';
+import { ResourceBundle } from './resource-bundle';
+import { stringIsEmptyOrUndefined } from './utils';
+import { AjaxTextureLoader } from './ajax-texture-loader';
 
 // import {GLTFLoader2} from './GLTFLoader2';
 
@@ -193,9 +193,12 @@ export class ResourseBundleLoader<TData = void> {
 
   private onFileLoad(url: string, blob: Blob): void {
 
-    if (url.indexOf('svg') >= 0) {
+    if (url.indexOf('.svg') >= 0) {
       // перезапишем mime
       blob = blob.slice(0, blob.size, 'image/svg+xml');
+    } else if (url.indexOf('.mp3') >= 0) {
+      // перезапишем mime
+      // blob = blob.slice(0, blob.size, 'audio/mpeg');
     }
 
     const objUrl = URL.createObjectURL(blob);
@@ -217,7 +220,7 @@ export class ResourseBundleLoader<TData = void> {
       console.log(`${url} loaded: ${e.loaded}  total: ${e.total}`);
     }
 
-    this.loadingDict[url] = {loaded: e.loaded, total: total};
+    this.loadingDict[url] = { loaded: e.loaded, total: total };
 
     const itemProgressMax = 1 / this.resourceBook.urlCount;
 

@@ -144,7 +144,7 @@ a.mute, a.info {
   background-color: black;
 
   border-radius: 2px;
-  border: 1px solid white;
+  // border: 1px solid white;
 
   svg {
     display: block;
@@ -157,7 +157,7 @@ a.mute, a.info {
   }
 
   &:hover {
-    border-color: #35dace;
+    // border-color: #35dace;
     svg {
       .light {
         fill: #35dace;

@@ -78,7 +78,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       angle: -70,
       inner: 30,
       outer: 80,
-      volume: 0.2
+      volume: 0.1
     },
     // диалог Марион
     {
@@ -449,9 +449,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     droneSourceElement.src = this.bundle.fileDict[droneAudioPath];
     droneSourceElement.type = 'audio/mp3';
-
+    droneAudioElement.volume = 0.05;
     droneAudioElement.play();
-    droneAudioElement.volume = 0.1;
 
     const audioTrackRefs = this.audioTrackRefs.toArray();
 

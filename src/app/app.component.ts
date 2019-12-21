@@ -1,3 +1,5 @@
+declare const require: (url: string) => any;
+
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
@@ -49,8 +51,6 @@ interface IClickAction {
   readonly names: string[];
   readonly url?: string;
 }
-
-declare const require: (url: string)=> any;
 
 const aboutBgImageUrl = require('../assets/text.svg');
 const droneAudioPath = './assets/drone.mp3';
@@ -216,8 +216,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     bundleLoader.progress.subscribe(x => {
       this.loadingProgress = Math.round(100 * x) / 100;
       this.changeDetector.detectChanges();
-
-      // console.log(`progress ${x}`);
     });
 
     bundleLoader.complete.subscribe(bundle => {

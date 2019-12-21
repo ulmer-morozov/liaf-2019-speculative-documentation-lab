@@ -19,31 +19,6 @@
 </audio>
 <audio #droneAudioTrack loop preload="auto"></audio>
 
-<!-- <a *ngIf="!introIsShown" [class.muted]="muted" (click)="muteToggle()" class="mute">
-  <svg *ngIf="!muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 888.56">
-    <path class="light" d="M349.82 339.21L584 187v515.67L349.82 549.21zM228.98 340.62h61.78v208.43h-61.78z"/>
-    <path class="light" transform="rotate(-180 663.44 444.83)" d="M632.72 321.83h61.45v245.99h-61.45z"/>
-  </svg>
-
-  <svg *ngIf="muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 888.56">
-    <path class="light" d="M349.82,339.21,584,187V702.67L349.82,549.21Z"/>
-    <rect class="light" x="228.98" y="340.62" width="61.78" height="208.43"/>
-    <rect x="499.87" y="247.9" width="161.12" height="386.19" transform="translate(-141.83 539.59) rotate(-45)"/>
-    <rect x="499.87" y="247.9" width="161.12" height="386.19" transform="translate(679.02 1163.26) rotate(-135)"/>
-    <rect class="light" x="549.71" y="295.7" width="61.45" height="290.59"
-          transform="translate(-141.83 539.59) rotate(-45)"/>
-    <rect class="light" x="549.71" y="295.7" width="61.45" height="290.59"
-          transform="translate(679.02 1163.26) rotate(-135)"/>
-  </svg>
-</a> -->
-
-<!-- <a *ngIf="!introIsShown" (click)="showAbout()" class="info">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 888.56 888.56">
-    <path class="light"
-          d="M358.71 265.64c0-44.42 35.92-75.12 85.57-75.12s85.58 30.7 85.58 75.12-35.93 75.78-85.58 75.78-85.57-31.36-85.57-75.78zm8.49 111.71h154.17v337.08H367.2z"/>
-  </svg>
-</a> -->
-
 <div *ngIf="loaded" [class.hidden]="!introIsShown && !aboutIsShown" class="intro-wrapper">
   <div class="intro">
 

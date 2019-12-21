@@ -226,7 +226,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loaded = true;
       this.bundle = bundle;
 
-      this.aboutBgFinalImageUrl = this.domSanitizer.bypassSecurityTrustResourceUrl(aboutBgImageUrl);
+      this.aboutBgFinalImageUrl = aboutBgImageUrl;
 
       this.processGltf(model);
       this.fillScene();

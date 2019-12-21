@@ -50,7 +50,9 @@ interface IClickAction {
   readonly url?: string;
 }
 
-const aboutBgImageUrl = './assets/text.svg';
+declare const require: (url: string)=> any;
+
+const aboutBgImageUrl = require('../assets/text.svg');
 const droneAudioPath = './assets/drone.mp3';
 
 @Component({
